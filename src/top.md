@@ -1,1 +1,0 @@
-# The Walnut Configuration Language
