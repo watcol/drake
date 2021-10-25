@@ -3,7 +3,7 @@ Walnut is an simple, programmable, human-readable, and obvious configuration
 language.
 
 ## Features
-- [ ] [TOML](https://toml.io/)-like syntax to express tables and arrays.
+- [ ] TOML-like syntax to express tables and arrays.
 - [ ] Resusable variables, functions and simple calculations.
 - [ ] Strong typing and smart type inference.
 - [ ] Importing other files.
