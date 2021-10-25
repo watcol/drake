@@ -4,12 +4,6 @@ This book is the specification for the Walnut configuration language that
 speifies syntax and semantics. Parser and interpreter implementations must
 follow this specification.
 
-## The terms
-- "Whitespace" means tab (`U+0009`) or space (`U+0020`).
-- "Newline" means line feed (`U+000A`) or carriage return (`U+000D`).
-- "Parenthesis" means left and right of round brackets (`()`), curly brackets
-  (`{}`), or square brackts (`[]`).
-
 ## Table of Contents
 - File Format
 - Line
@@ -36,6 +30,7 @@ follow this specification.
     - Comparison Operators
     - If Operator
   - Function Call
+- The terms
 - ABNF Grammar
 
 ## File Format
@@ -68,6 +63,12 @@ included). Newline characters are not permitted in comments.
 key = "value" # This is also a comment
 key2 = "# This is not a comment"
 ```
+
+## The terms
+- "Whitespace" means tab (`U+0009`) or space (`U+0020`).
+- "Newline" means line feed (`U+000A`) or carriage return (`U+000D`).
+- "Parenthesis" means left and right of round brackets (`()`), curly brackets
+  (`{}`), or square brackts (`[]`).
 
 ## ABNF Grammar
 *Comming soon...*
