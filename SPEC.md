@@ -5,9 +5,9 @@ speifies syntax and semantics. Parser and interpreter implementations must
 follow this specification.
 
 ## Table of Contents
-- File Format
-- Line
-  - Comment
+- [File Format](#file-format)
+- [Line](#line)
+  - [Comment](#comment)
   - Empty Line
   - Key/Expression Pair
   - Table Header
@@ -30,8 +30,8 @@ follow this specification.
     - Comparison Operators
     - If Operator
   - Function Call
-- The terms
-- ABNF Grammar
+- [The terms](#the-terms)
+- [ABNF Grammar](#abnf-grammar)
 
 ## File Format
 - A Walnut file must be encoded in UTF-8.
