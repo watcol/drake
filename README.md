@@ -22,4 +22,4 @@ The specification is available on [SPEC.md](./SPEC.md) (**WORK IN PROGRESS**).
 *Comming soon...*
 
 ## License
-This document is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0). See [LICENSE.md](./LICENSE.md)
+This document is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0). See [LICENSE](./LICENSE)
