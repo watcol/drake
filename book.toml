@@ -1,6 +1,6 @@
 [book]
-authors = ["watcol"]
+authors = ["Walnut Developers"]
 language = "en"
 multilingual = false
 src = "src"
-title = "The Coconut Configuration Language"
+title = "The Walnut Configuration Language"

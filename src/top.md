@@ -1,1 +1,1 @@
-# The Coconut Configuration Language
+# The Walnut Configuration Language

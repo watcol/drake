@@ -1,3 +1,3 @@
 # Summary
 
-[The Coconut Configuration Language](./top.md)
+[The Walnut Configuration Language](./top.md)
