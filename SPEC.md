@@ -6,9 +6,9 @@ follow this specification.
 
 ## Table of Contents
 - [File Format](#file-format)
-- [Line](#line)
+- [Sentence](#sentence)
   - [Comment](#comment)
-  - Empty Line
+  - [Empty Sentence](#empty-sentence)
   - Key/Expression Pair
   - Table Header
     - Array of Tables
@@ -28,29 +28,41 @@ follow this specification.
     - Arithmetic Operators
     - Logical Operators
     - Comparison Operators
-    - If Operator
   - Function Call
 - [The terms](#the-terms)
 - [ABNF Grammar](#abnf-grammar)
 
 ## File Format
 - A Walnut file must be encoded in UTF-8.
-- A Walnut file is described as an sequence of [lines](#line).
+- A Walnut file is described as an sequence of [sentences](#sentence).
 - A Walnut file should use the extension `.wal`.
 - The appropriate MIME type for Walnut files is `application/walnut`.
 
-## Line
-Line is the string between two [newline](#the-term) characters (or the
-beginning of a file), expcept newlines escaped by `\`, newlines surrounded by
-[parentheses](#the-terms) or newlines in [strings](#string). The former two
-cases are treated as a [whitespace](#the-term), but in the latter case, the
-behavior is decided by the kind of string. See also:
-[Expression/String](#string)
+## Sentence
+Sentence is a base unit of Walnut, categorized into these types:
+- [Empty Sentence](#empty-sentence)
+- Key/Expression Pair
+- Table Header
+- Function Definition
+- Import Declaration
 
-[Whitespaces](#the-terms) in the beginning or the end of a line and a
-[comment](#comment) in the middle, or the end of a line will be ignored (= is
-equivalent to empty text). Therefore, a comment in the middle of a line will
-be interpreted as a whitespace, and one in the end of a line will be ignored.
+Sentences basically consist of one line (separated with [newline](#the-terms)
+characters), except these cases:
+- Sentence with a line ends with `\` (without considering
+  [whitespaces](#the-terms) or [comments](#comment)), will be continued to the
+  next line (and `\` will be ignored).
+- Newline characters inside [parentheses](#the-terms) will be ignored.
+- Newline characters inside [strings](#string) will be treated by the specific
+  way, determined by the kind of strings, mentioned in the section
+  [Expression/String](#string).
+
+Note that [whitespaces](#the-terms) in the beginning or the end of a line and
+a [comment](#comment) in the end of a line will be ignored (= is equivalent to
+an empty text).
+
+```toml
+line = "foo" # This is a line.
+```
 
 ### Comment
 Comment is a text starts with hash symbol (`#`, `U+0023`) outside a
@@ -58,11 +70,15 @@ Comment is a text starts with hash symbol (`#`, `U+0023`) outside a
 continues until the appearance of a [newline](#the-term) character (not
 included). Newline characters are not permitted in comments.
 
-```
+```toml
 # This is an comment
 key = "value" # This is also a comment
 key2 = "# This is not a comment"
 ```
+
+### Empty sentence
+Empty sentence is a sentence with nothing but [whitespaces](#whitespaces).
+Empty sentence has no effects to the semantics.
 
 ## The terms
 - "Whitespace" means tab (`U+0009`) or space (`U+0020`).
