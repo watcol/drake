@@ -6,10 +6,10 @@ follow this specification.
 
 ## Table of Contents
 - [File Format](#file-format)
-- [Sentence](#sentence)
+- [Statement](#statement)
   - [Comment](#comment)
-  - [Empty Sentence](#empty-sentence)
-  - Key/Expression Pair
+  - [Empty Statement](#empty-statement)
+  - [Key/Expression Pair](#key-expression-pair)
   - Table Header
     - Array of Tables
   - Function Definition
@@ -34,21 +34,23 @@ follow this specification.
 
 ## File Format
 - A Walnut file must be encoded in UTF-8.
-- A Walnut file is described as an sequence of [sentences](#sentence).
+- A Walnut file is described as an sequence of [statements](#statement), and
+  expresses a table whose keys and values are described in
+  [key/expression pair](#key-expression-pair) statements.
 - A Walnut file should use the extension `.wal`.
 - The appropriate MIME type for Walnut files is `application/walnut`.
 
-## Sentence
-Sentence is a base unit of Walnut, categorized into these types:
-- [Empty Sentence](#empty-sentence)
-- Key/Expression Pair
+## Statement
+Statement is a base unit of Walnut, categorized into these types:
+- [Empty Statement](#empty-statement)
+- [Key/Expression Pair](#key-expression-pair)
 - Table Header
 - Function Definition
 - Import Declaration
 
-Sentences basically consist of one line (separated with [newline](#the-terms)
+Statements basically consist of one line (separated with [newline](#the-terms)
 characters), except these cases:
-- Sentence with a line ends with `\` (without considering
+- Statement with a line ends with `\` (without considering
   [whitespaces](#the-terms) or [comments](#comment)), will be continued to the
   next line (and `\` will be ignored).
 - Newline characters inside [parentheses](#the-terms) will be ignored.
@@ -61,13 +63,27 @@ a [comment](#comment) in the end of a line will be ignored (= is equivalent to
 an empty text).
 
 ```toml
-line = "foo" # This is a line.
+# All of these are statements.
+stmt = "foo"
+  stmt2 = "bar"
+stmt3 =
+  "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do" + \
+  "eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad" + \
+  "minim veniam, quis nostrud exercitation ullamco laboris nisi ut" + \
+  "aliquip ex ea commodo consequat. Duis aute irure dolor in" + \
+  "reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla" + \
+  "pariatur. Excepteur sint occaecat cupidatat non proident, sunt in" + \
+  "culpa qui officia deserunt mollit anim id est laborum."
+stmt4 = [
+  "elem1",
+  "elem2"
+]
 ```
 
 ### Comment
 Comment is a text starts with hash symbol (`#`, `U+0023`) outside a
-[string](#string), (inside [parentheses](#the-term) are allowed) and
-continues until the appearance of a [newline](#the-term) character (not
+[string](#string), (inside [parentheses](#the-terms) are allowed) and
+continues until the appearance of a [newline](#the-terms) character (not
 included). Newline characters are not permitted in comments.
 
 ```toml
@@ -76,9 +92,19 @@ key = "value" # This is also a comment
 key2 = "# This is not a comment"
 ```
 
-### Empty sentence
-Empty sentence is a sentence with nothing but [whitespaces](#whitespaces).
-Empty sentence has no effects to the semantics.
+### Empty statement
+Empty statement is a statement with nothing but [whitespaces](#the-terms).
+Empty statement has no effects to the semantics.
+
+### Key/Expression Pair
+Key/Expression pair is a statement registers a value to a key. [Keys](#key)
+are on the left of the equals sign (`=`, `U+003D`), and
+[expressions](#expression) are on the right. [Whitespaces](#the-terms) around
+the euqals sign are ignored.
+
+```toml
+key = "expression"
+```
 
 ## The terms
 - "Whitespace" means tab (`U+0009`) or space (`U+0020`).
