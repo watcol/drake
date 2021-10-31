@@ -57,8 +57,7 @@ characters), except these cases:
 - Newline characters inside [strings](#string) will be treated by the specific
   way, determined by the kind of strings, mentioned in the section
   [Expression/String](#string).
-
-Note that [whitespaces](#the-terms) in the beginning or the end of a line and
+Note that [whitespaces](#the-terms) in the beginning or the end of a line and 
 a [comment](#comment) in the end of a line will be ignored (= is equivalent to
 an empty text).
 
