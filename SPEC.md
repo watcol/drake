@@ -9,7 +9,7 @@ follow this specification.
 - [Statement](#statement)
   - [Comment](#comment)
   - [Empty Statement](#empty-statement)
-  - [Key/Expression Pair](#key-expression-pair)
+  - [Key/Expression Pair](#keyexpression-pair)
   - Table Header
     - Array of Tables
   - Function Definition
@@ -36,14 +36,14 @@ follow this specification.
 - A Walnut file must be encoded in UTF-8.
 - A Walnut file is described as an sequence of [statements](#statement), and
   expresses a table whose keys and values are described in
-  [key/expression pair](#key-expression-pair) statements.
+  [key/expression pair](#keyexpression-pair) statements.
 - A Walnut file should use the extension `.wal`.
 - The appropriate MIME type for Walnut files is `application/walnut`.
 
 ## Statement
 Statement is a base unit of Walnut, categorized into these types:
 - [Empty Statement](#empty-statement)
-- [Key/Expression Pair](#key-expression-pair)
+- [Key/Expression Pair](#keyexpression-pair)
 - Table Header
 - Function Definition
 - Import Declaration
