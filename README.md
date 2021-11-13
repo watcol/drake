@@ -12,8 +12,9 @@ language.
 ## Implementations
 There is [an reference implementation in Rust](https://github.com/walnut-lang/walnut-core), and a converter that can convert Walnut to JSON, YAML and TOML is also [available](https://github.com/walnut-lang/walnutc).
 
-## Specification
-The specification is available on [SPEC.md](./SPEC.md) (**WORK IN PROGRESS**).
+## Language Reference
+The language references are available [here](./docs/language.md)
+(**WORK IN PROGRESS**).
 
 ## Editor Support
 *Comming soon...*
@@ -22,4 +23,4 @@ The specification is available on [SPEC.md](./SPEC.md) (**WORK IN PROGRESS**).
 *Comming soon...*
 
 ## License
-This document is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0). See [LICENSE](./LICENSE)
+Walnut is licensed under the MIT license. See [LICENSE](./LICENSE).

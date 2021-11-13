@@ -1,36 +1,7 @@
 # Walnut v0.1.0-pre
 
-This book is the specification for the Walnut configuration language that
-speifies syntax and semantics. Parser and interpreter implementations must
-follow this specification.
-
-## Table of Contents
-- [File Format](#file-format)
-- [Statement](#statement)
-  - [Comment](#comment)
-  - [Empty Statement](#empty-statement)
-  - [Key/Expression Pair](#keyexpression-pair)
-  - Table Header
-    - Array of Tables
-  - Function Definition
-  - Import Declaration
-- Expression
-  - String
-  - Integer
-  - Float
-  - Boolean
-  - Array
-  - Inline Table
-  - Inline Function
-  - Key
-  - Function
-  - Operators
-    - Arithmetic Operators
-    - Logical Operators
-    - Comparison Operators
-  - Function Call
-- [The terms](#the-terms)
-- [ABNF Grammar](#abnf-grammar)
+This book is the reference for the Walnut configuration language, describes
+syntax and semantics.
 
 ## File Format
 - A Walnut file must be encoded in UTF-8.
@@ -44,9 +15,9 @@ follow this specification.
 Statement is a base unit of Walnut, categorized into these types:
 - [Empty Statement](#empty-statement)
 - [Key/Expression Pair](#keyexpression-pair)
-- Table Header
-- Function Definition
-- Import Declaration
+- [Table Header](#table-header)
+- [Function Definition](#function-definition)
+- [Import Declaration](#import-declaration)
 
 Statements basically consist of one line (separated with [newline](#the-terms)
 characters), except these cases:
@@ -105,11 +76,122 @@ the euqals sign are ignored.
 key = "expression"
 ```
 
+### Table Header
+Table Header is a statement to declare the beginning of table, formed by a
+[key](#key) surrounded by a pair of [square brackets](#the-terms).
+[Whitespaces](#the-terms) around the brackets are ignored.
+
+[Key/Expression pairs](#keyexpression-pair) below headers are regarded as
+elements of an [table](#the-terms) indicated by the [key](#key), until the
+next table header or the end of file.
+
+```toml
+[table1]
+key = "value"
+
+  [
+  table2
+  ]
+```
+
+Overwriting exsiting tables are prohibited.
+
+```toml
+table = { foo = "foo" }
+
+[table] # Error!
+```
+
+But an expression after the closing bracket is used as an initial table and
+values are freely overwrited or appended.
+
+```toml
+# `table` is `{ foo = "baz", bar = "baz", baz = 1 }`.
+[table] { foo = "foo", bar = "bar" }
+bar = "baz"   # Overwriting a value.
+baz = 1       # Appending a value.
+
+ # It is useful when overwriting an imported table.
+[dependencies] import("dependencies.wal")
+```
+
+#### Array of Tables
+Table header with double square brackets expresses that the value indicated by
+the key is an array and the following key/expression pairs form a table which
+is an element of the array. The table below the first header is the first
+element, and headers with same key indicates following elements.
+
+```toml
+[[users]]
+name = "Alice"
+id = 42362465
+
+[[users]]   # Empty table
+
+[[users]]
+name = "Bob"
+id = 63328257
+
+# Equivalent to:
+users = [
+  { name = "Alice", id = 42362465 },
+  {},
+  { name = "Bob", id = 63328257 },
+]
+```
+
+Initial arrays of tables can be assigned by putting an expression after the
+last closing bracket of the first element. Following tables will be appended
+to the initial array.
+
+```toml
+# `array` is `[ { foo = "foo" }, { bar = "bar" }, { baz = "baz" } ]`.
+[[array]] [{ foo = "foo" }]
+bar = "bar"
+
+[[array]]
+baz = "baz"
+```
+
+### Function Definition
+
+## Expression
+
+### String
+
+### Integer
+
+### Float
+
+### Boolean
+
+### Array
+
+### Inline Table
+
+### Inline Function
+
+### Key
+
+### Operators
+
+#### Arithmetic Operators
+
+#### Logical Operators
+
+#### Comparison Operators
+
+### Function
+
+#### Function Call
+
 ## The terms
 - "Whitespace" means tab (`U+0009`) or space (`U+0020`).
 - "Newline" means line feed (`U+000A`) or carriage return (`U+000D`).
 - "Parenthesis" means left and right of round brackets (`()`), curly brackets
-  (`{}`), or square brackts (`[]`).
+  (`{}`), or square brackets (`[]`).
+- "Table" means a collection consists of key/value pairs, also known as
+  "dictionary" or "hash table".
 
 ## ABNF Grammar
 *Comming soon...*
