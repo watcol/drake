@@ -241,28 +241,27 @@ python = '''
 Integer is a whole number. Decimals, hexadecimals (with prefix `0x`), octals 
 (with prefix `0o`), and binaries (with prefix `0b`) are supported. In
 hexadecimals, numbers from ten to fifty are expressed by `A-F` or `a-f`.
-Leading zeros are not allowed.
+Leading zeros are not allowed in decimals.
 
 ```toml
 decimal = 42
 hex1 = 0xDEADBEEF
 hex2 = 0xcafebabe
 oct = 0o644
-bin = 0b11010110
+bin = 0b01010110
 ```
 
 An integer prefixed with `+` will be treated as positive number, one prefixed
 with `-` will be treated as negative number. If an integer does not have
 neither `+` or `-`, it will be a positive number. `+0`, and `-0` are identical
-to `0`.
+to `0`. Hexadecimal, octal and binary integers cannot have `+` or `-` signs.
 
 ```toml
 pos1 = 42
 pos1 = +1
 zero1 = 0
 zero2 = -0
-neg1 = -5
-neg2 = -0xcafebabe
+neg = -5
 ```
 
 Underscores between digits are allowed for readability.
