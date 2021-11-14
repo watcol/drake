@@ -308,6 +308,25 @@ bool2 = false
 ```
 
 #### Array
+Array is a collection of values. An array is surrounded by a pair of
+[square brackets](#square-brackets), and values are separated with commas
+(`U+002C`). [Whitespaces](#the-terms) around square brackets or commas will be
+ignored. See also [Array of Tables](#array-of-tables).
+
+```toml
+array1 = [1, 2, 3, 4]
+array2 = []
+array3 = ["foo", true, 2.3]
+array4 = [
+  "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod",
+  "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim",
+  "veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea",
+  "commodo consequat. Duis aute irure dolor in reprehenderit in voluptate",
+  "velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint",
+  "occaecat cupidatat non proident, sunt in culpa qui officia deserunt",
+  "mollit anim id est laborum."
+]
+```
 
 #### Inline Table
 
