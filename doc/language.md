@@ -278,12 +278,12 @@ Accepted range is from `-2^63` to `2^63-1` (64bit signed integer).
 Float is a IEEE 754 binary64 value.
 
 A float consists of integer part, fractional part and exponent part. An
-integer part is required, and follows same rule as decimal [integer](#integer)
-. A fractional part is prefixed with a full stop (`U+002E`), and consists of
-one or more decimal digits. An exponent part is prefixed with `e` or `E`, and
-consists of an integer, which follows same rule as decimal [integer](#integer)
-but leading zeros are allowed. Either a fractional part or an exponent part
-are required.
+integer part is required, and follows same rule as decimal
+[integer](#integer). A fractional part is prefixed with a full stop
+(`U+002E`), and consists of one or more decimal digits. An exponent part is
+prefixed with `e` or `E`, and consists of an integer, which follows same rule
+as decimal [integer](#integer) but leading zeros are allowed. Either a
+fractional part or an exponent part are required.
 
 A float will be expressed by `(i + f) * (10 ** e)` where `i` is an integer
 part, `f` is a fractional part prefixed with `0.` (if eliminated, `f` is 0),
