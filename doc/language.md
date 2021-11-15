@@ -67,9 +67,10 @@ Empty statement has no effects to the semantics.
 
 ### Key/Expression Pair
 Key/Expression pair is a statement registers a value to a key. [Keys](#key)
-(except [indexed keys](#numbered-keys)) are on the left of the equals sign
-(`=`, `U+003D`), and [expressions](#expression) are on the right.
-[Whitespaces](#the-terms) around the euqals sign are ignored.
+(except [indexed keys](#numbered-keys) and [function keys](#function-keys))
+are on the left of the equals sign (`=`, `U+003D`), and
+[expressions](#expression) are on the right. [Whitespaces](#the-terms) around
+the euqals sign are ignored.
 
 ```toml
 key = "expression"
@@ -335,8 +336,9 @@ a list of pairs of a [bare key](#bare-key) or a [raw key](#raw-key) and an
 commas, surrounded by [curly brackets](#the-terms).
 
 ```toml
-table1 = { foo = "foo", bar = true, baz = 0 }
-table2 = {
+table1 = { foo = "foo", bar = "bar" }
+table2 = {}
+table3 = {
   string = "foo",
   integer = 42,
   float = 1.0,
@@ -344,23 +346,34 @@ table2 = {
   array = [0, 1, 2],
   table = { name = "Tom", id = 23235278 },
 }
-table3 = {}
 ```
 
 #### Inline Function
 *Comming soon...*
 
 ### Key
+Key is an identifier refers to a specific value. Keys are used in two
+contexts: in declarations (like [key/expression pairs](#keyexpression-pair),
+[table headers](#table-header), or the arguments part of
+[function definitions](#function-definition)), and in
+[expressions](#expression).
 
-#### Bare Key
+#### In Declarations
 
-#### Raw Key
+#### In Expressions
+*Comming soon...*
 
-#### Dotted Key
+#### Kinds of Keys
+##### Bare Key
 
-#### Indexed Key
+##### Raw Key
 
-#### Function Key
+##### Dotted Key
+
+##### Indexed Key
+*Comming soon...*
+
+##### Function Key
 *Comming soon...*
 
 ### Operators
