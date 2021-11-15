@@ -67,9 +67,9 @@ Empty statement has no effects to the semantics.
 
 ### Key/Expression Pair
 Key/Expression pair is a statement registers a value to a key. [Keys](#key)
-are on the left of the equals sign (`=`, `U+003D`), and
-[expressions](#expression) are on the right. [Whitespaces](#the-terms) around
-the euqals sign are ignored.
+(except [indexed keys](#numbered-keys)) are on the left of the equals sign
+(`=`, `U+003D`), and [expressions](#expression) are on the right.
+[Whitespaces](#the-terms) around the euqals sign are ignored.
 
 ```toml
 key = "expression"
@@ -329,11 +329,36 @@ array4 = [
 ```
 
 #### Inline Table
+Inline table is another way to express a table. A inline table consists of
+a list of pairs of a [bare key](#bare-key) or a [raw key](#raw-key) and an
+[expression](#expression) with a equals sign separater, separated with
+commas, surrounded by [curly brackets](#the-terms).
+
+```toml
+table1 = { foo = "foo", bar = true, baz = 0 }
+table2 = {
+  string = "foo",
+  integer = 42,
+  float = 1.0,
+  boolean = false,
+  array = [0, 1, 2],
+  table = { name = "Tom", id = 23235278 },
+}
+table3 = {}
+```
 
 #### Inline Function
 *Comming soon...*
 
 ### Key
+
+#### Bare Key
+
+#### Raw Key
+
+#### Dotted Key
+
+#### Indexed Key
 
 #### Function Key
 *Comming soon...*
