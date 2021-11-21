@@ -9,9 +9,6 @@ language.
 - [ ] Importing other files.
 - [ ] Convertable to JSON, YAML, and TOML.
 
-## Implementations
-There is [an reference implementation in Rust](https://github.com/walnut-lang/walnut-core), and a converter that can convert Walnut to JSON, YAML and TOML is also [available](https://github.com/walnut-lang/walnutc).
-
 ## Language Reference
 The language references are available [here](./docs/language.md)
 (**WORK IN PROGRESS**).
