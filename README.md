@@ -16,8 +16,5 @@ The language references are available [here](./docs/language.md)
 ## Editor Support
 *Comming soon...*
 
-## Validators
-*Comming soon...*
-
 ## License
 Walnut is licensed under the MIT license. See [LICENSE](./LICENSE).
