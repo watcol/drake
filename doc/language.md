@@ -1,4 +1,4 @@
-# Walnut v0.1.0-pre
+# Walnut v0.0.1-pre
 
 This book is the reference for the Walnut configuration language, describes
 syntax and semantics.
@@ -6,29 +6,28 @@ syntax and semantics.
 ## File Format
 - A Walnut file must be encoded in UTF-8.
 - A Walnut file is described as an sequence of [statements](#statement), and
-  expresses a table whose keys and values are described in
-  [key/expression pair](#keyexpression-pair) statements.
+  expresses a [table](#table) by [rendering](#terms).
 - A Walnut file should use the extension `.wal`.
 - The appropriate MIME type for Walnut files is `application/walnut`.
 
 ## Statement
 Statement is a base unit of Walnut, categorized into these types:
 - [Empty Statement](#empty-statement)
-- [Key/Expression Pair](#keyexpression-pair)
+- [Value Binding](#value-binding)
 - [Table Header](#table-header)
 - [Function Definition](#function-definition)
 
-Statements basically consist of one line (separated with [newline](#the-terms)
+Statements basically consist of one line (separated with [newline](#terms)
 characters), except these cases:
 - Statement with a line ends with `\` (without considering
-  [whitespaces](#the-terms) or [comments](#comment)), will be continued to the
+  [whitespaces](#terms) or [comments](#comment)), will be continued to the
   next line (and `\` will be ignored).
-- Newline characters inside [parentheses](#the-terms) will be ignored.
+- Newline characters inside [parentheses](#terms) will be ignored.
 - Newline characters inside [strings](#string) will be treated by the specific
   way, determined by the kind of strings, mentioned in the section
   [Expression/String](#string).
-Note that [whitespaces](#the-terms) in the beginning or the end of a line and 
-a [comment](#comment) in the end of a line will be ignored (= is equivalent to
+Note that [whitespaces](#terms) in the beginning or the end of a line and a
+[comment](#comment) in the end of a line will be ignored (= is equivalent to
 an empty text).
 
 ```toml
@@ -51,9 +50,9 @@ stmt4 = [
 
 ### Comment
 Comment is a text starts with hash symbol (`#`, `U+0023`) outside a
-[string](#string), (inside [parentheses](#the-terms) are allowed) and
-continues until the appearance of a [newline](#the-terms) character (not
-included). Newline characters are not permitted in comments.
+[string](#string), (inside [parentheses](#terms) are allowed) and continues
+until the appearance of a [newline](#terms) character (not included). Newline
+characters are not permitted in comments.
 
 ```toml
 # This is an comment
@@ -62,28 +61,29 @@ key2 = "# This is not a comment"
 ```
 
 ### Empty statement
-Empty statement is a statement with nothing but [whitespaces](#the-terms).
-Empty statement has no effects to the semantics.
+Empty statement is a statement with nothing but [whitespaces](#terms). Empty
+statement has no effects to the semantics.
 
-### Key/Expression Pair
-Key/Expression pair is a statement registers a value to a key. [Keys](#key)
-(except [indexed keys](#numbered-keys) and [function keys](#function-keys))
-are on the left of the equals sign (`=`, `U+003D`), and
-[expressions](#expression) are on the right. [Whitespaces](#the-terms) around
-the euqals sign are ignored.
+### Value Binding
+Value Binding is a statement which registers key/value pairs to current
+[scope](#scope) using [patterns](#pattern). Patterns are on the left of the
+equals sign (`U+003D`), and [expressions](#expression) are on the right.
+[Whitespaces](#terms) around the euqals sign are ignored.
 
 ```toml
-key = "expression"
+pattern = "expression"
 ```
 
 ### Table Header
-Table Header is a statement to declare the beginning of table, formed by a
-[key](#key) surrounded by a pair of [square brackets](#the-terms).
-[Whitespaces](#the-terms) around the brackets are ignored.
+Table header is a statement to declare the beginning of [table](#table),
+formed by a [pattern](#pattern) surrounded by a pair of
+[square brackets](#terms). [Whitespaces](#terms) around the brackets are
+ignored.
 
-[Key/Expression pairs](#keyexpression-pair) below headers are regarded as
-elements of an [table](#the-terms) indicated by the [key](#key), until the
-next table header or the end of file.
+A table header stores an empty table using the pattern (except
+[array](#array-destruction) and [table](#table-destruction) destructions)
+using [root scope](#root-scope), and starts a new [sub scope](#sub-scope)
+continues to the next table header or the end of file.
 
 ```toml
 [table1]
@@ -102,8 +102,8 @@ table = { foo = "foo" }
 [table] # Error!
 ```
 
-But an expression after the closing bracket is used as an initial table and
-values are freely overwrited or appended.
+Instead of an empty table, an expression after the closing bracket can be used
+as an initial tables.
 
 ```toml
 # `table` is `{ foo = "baz", bar = "baz", baz = 1 }`.
@@ -116,10 +116,9 @@ baz = 1       # Appending a value.
 ```
 
 #### Array of Tables
-Table header with double square brackets expresses that the value indicated by
-the key is an array and the following key/expression pairs form a table which
-is an element of the array. The table below the first header is the first
-element, and headers with same key indicates following elements.
+By using double [square brackets](#square-brackets), the header creates an
+empty array to [root scope](#root-scope) (in the first header), appends a
+table to the array, and starts a new [sub scope](#sub-scope).
 
 ```toml
 [[users]]
@@ -140,13 +139,11 @@ users = [
 ]
 ```
 
-Initial arrays of tables can be assigned by putting an expression after the
-last closing bracket of the first element. Following tables will be appended
-to the initial array.
+In the first header, an initial array can be used instead of an empty array.
 
 ```toml
-# `array` is `[ { foo = "foo" }, { bar = "bar" }, { baz = "baz" } ]`.
-[[array]] [{ foo = "foo" }]
+# `array` is `[ { foo = "foo" }, "str", { bar = "bar" }, { baz = "baz" } ]`.
+[[array]] [{ foo = "foo" }, "str"]
 bar = "bar"
 
 [[array]]
@@ -156,10 +153,16 @@ baz = "baz"
 ### Function Definition
 *Comming soon...*
 
+#### Expression Function
+*Comming soon...*
+
+#### Table Function
+*Comming soon...*
+
 ## Expression
 Expression is a way to express a value by evaluating
-[literal values](#literal-value) or values refered through [keys](#key), using
-[operators](#operator).
+[literal values](#literal-value) or values refered through
+[keys](#key-reference), using [operators](#operator).
 
 ### Literal Value
 Literal value is a value expressed directly. Literal values are classified to
@@ -311,8 +314,9 @@ bool2 = false
 #### Array
 Array is a collection of values. An array is surrounded by a pair of
 [square brackets](#square-brackets), and values are separated with commas
-(`U+002C`). [Whitespaces](#the-terms) around square brackets or commas will be
-ignored. See also [Array of Tables](#array-of-tables).
+(`U+002C`). A comma after the last value is allowed, and
+[whitespaces](#terms) around square brackets or commas will be ignored. See
+also [Array of Tables](#array-of-tables).
 
 ```toml
 array1 = [1, 2, 3, 4]
@@ -330,10 +334,12 @@ array4 = [
 ```
 
 #### Inline Table
-Inline table is another way to express a table. A inline table consists of
-a list of pairs of a [bare key](#bare-key) or a [raw key](#raw-key) and an
-[expression](#expression) with a equals sign separater, separated with
-commas, surrounded by [curly brackets](#the-terms).
+Inline table is another way to express a [table](#table). A inline table
+consists of a list of pairs of a [bare](#bare-key) or [raw](#raw-key) key and
+an [expression](#expression) with a equals sign separater, separated with
+commas, surrounded by [curly brackets](#terms). A comma after the last value
+is allowed, and [whitespaces](#terms) around square brackets or commas will be
+ignored.
 
 ```toml
 table1 = { foo = "foo", bar = "bar" }
@@ -351,29 +357,7 @@ table3 = {
 #### Inline Function
 *Comming soon...*
 
-### Key
-Key is an identifier refers to a specific value. Keys are used in two
-contexts: in declarations (like [key/expression pairs](#keyexpression-pair),
-[table headers](#table-header), or the arguments part of
-[function definitions](#function-definition)), and in
-[expressions](#expression).
-
-#### In Declarations
-
-#### In Expressions
-*Comming soon...*
-
-#### Kinds of Keys
-##### Bare Key
-
-##### Raw Key
-
-##### Dotted Key
-
-##### Indexed Key
-*Comming soon...*
-
-##### Function Key
+### Key Reference
 *Comming soon...*
 
 ### Operators
@@ -388,16 +372,176 @@ contexts: in declarations (like [key/expression pairs](#keyexpression-pair),
 #### Comparison Operators
 *Comming soon...*
 
+#### Accessing Values
+*Comming soon...*
+
 #### Function Call
 *Comming soon...*
 
-## The terms
+## Tables and Keys
+### Table
+Table is a collection consists of key/value pairs, also known as "dictionary"
+or "hash map". There are two types to express tables:
+
+- [Table Header](#table-header)
+- [Inline Table](#inline-table)
+
+```toml
+[table]
+item1 = "item1"
+item2 = "item2"
+
+.inline_table = {item1 = "item1", item2 = "item2"}
+```
+
+### Key
+Key is an identifier refers to a specific value on the table. There are five
+types of keys:
+
+- [Bare Key](#bare-key)
+- [Raw Key](#raw-key)
+- [Local Key](#local-key)
+- [Root Key](#root-key)
+- [Function Key](#root-key)
+
+#### Bare Key
+Bare key is a basic way to express key, and a bare key starts with a 
+english letter (`U+0041-U+005A`, `U+0061-U+007A`), and rest characters are
+consists of english letters, decimal digits (`U+0030-U+0039`), or low lines
+(`U+005F`).
+
+```toml
+barekey = "This is a bare key."
+bare_key2 = "Digits and underscores can be used."
+```
+
+#### Raw Key
+Raw Key is a way to express key contains characters which can't express with
+[bare keys](#bare-key). A raw key starts with a dollar sign (`U+0024`), and
+surrounded by a pair of [curly brackets](#terms). This key can contain any key
+except backslashes (`U+005C`) and right curly brackets (`U+007D`). Escape
+patterns similar to [double quoted strings](#double-quoted-string) is
+available, but instead of `\"`, `\}` is used to express right curly brackets
+(`U+007D`). [Whitespaces](#terms) after `$` prefix are ignored.
+
+Note that bare keys and raw keys consists of same characters (for
+instance `key` and `${key}`) are identical and will conflict.
+
+```toml
+${raw key} = "This is a raw key."
+$  {\\{All\u{00A0}characters\ncan be used.\}} = true
+```
+
+#### Local Key
+Local key is a [bare](#bare-key) or [raw](#raw-key) key prefixed with a low
+line (`U+005F`). Local keys can't be accessed from external scope, and won't
+be [rendered](#terms) by the compiler. [Whitespaces](#terms) after the `_`
+prefix are ignored.
+
+This is useful when you want to create commonly used in the file, but is not
+needed to be visible from out of a scope.
+
+```toml
+base = table._base   # Not allowed
+foo = table.foo      # Allowed.
+
+[table]
+_base = 5
+foo = _base + 5
+bar = _base + 10
+
+[table2]
+foo = ._base         # Not allowed
+
+_${Raw Local} = "Raw Local Key"
+${_Not Local} = "Normal Raw Key"
+```
+
+Refering local keys of outer scopes are allowed.
+
+```toml
+_root_local = "root"
+root1 = _root_local              # Allowed
+root2 = sub._sub_local           # Not allowed
+root3 = sub.sub._sub_sub_local   # Not allowed
+
+[sub]
+_sub_local = "sub"
+sub1 = ._root_local              # Allowed
+sub2 = _sub_local                # Allowed
+sub3 = sub._sub_sub_local        # Not allowed
+
+[sub.sub]
+_sub_sub_local = "subsub"
+subsub1 = ._root_local           # Allowed
+subsub2 = .sub._sub_local        # Allowed
+subsub3 = _sub_sub_local         # Allowed
+```
+
+#### Root Key
+Root key is a [bare](#bare-key), [raw](#raw-key), key prefixed with a period,
+and access value from the [root scope](#root-scope) instead of current scope.
+[Whitespaces](#terms) after `.` prefix are ignored.
+
+```toml
+value = "root"
+
+[table]
+value = "table"
+foo = value          # "table"
+bar = .value         # "root"
+bar = .table.value   # "table"
+
+.${Raw Root} = "Raw Root Key"
+${.Not Root} = "Normal Raw Key"
+```
+
+#### Function Key
+*Comming soon...*
+
+### Scope
+Scope is a special table, used as the base point when refering keys. There are
+three types of scopes:
+
+#### Root Scope
+Root scope is a scope which exists only one per a file, and used as the entry
+point when [rendering](#terms) the file. Root scopes will be created as
+an empty table when a file is started.
+
+#### Sub Scope
+Sub scope is a scope created by [table headers](#table-header), and continues
+to the next table header or the end of file.
+
+#### Function Scope
+*Comming soon...*
+
+## Pattern
+Pattern is a way to express destinations of [value bindings](#value-binding)
+or [table headers](#table-header).
+
+### Key Pattern
+Key pattern is a pattern that just stores a key to current [scope](#scope).
+
+```toml
+key = "foo"
+```
+
+### Dotted Key Pattern
+*Comming soon...*
+
+### Array Destruction
+*Comming soon...*
+
+### Table Destruction
+*Comming soon...*
+
+## Terms
 - "Whitespace" means tab (`U+0009`) or space (`U+0020`).
 - "Newline" means line feed (`U+000A`) or carriage return (`U+000D`).
 - "Parenthesis" means left and right of round brackets (`()`), curly brackets
   (`{}`), or square brackets (`[]`).
-- "Table" means a collection consists of key/value pairs, also known as
-  "dictionary" or "hash table".
+- "Render" means processing and converting the walnut file to other data
+  notations.
 
 ## ABNF Grammar
 *Comming soon...*
