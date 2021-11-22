@@ -1,37 +1,41 @@
 use std::ops::Range;
 
+pub use lexer::tokens as lex;
+
 peg::parser! { grammar lexer() for str {
-    rule symbol() -> Symbol = c:$(['\n'|'\r'|'='|'+'|'-'|'*'|'/'|'%'|
-                                 '^'|'<'|'>'|'&'|'|'|'('|')'|'{'|
-                                 '}'|'['|']'|','|'.'|':'|'_'|'@'])
-    {
-        match c {
-            "\n"|"\r" => Symbol::NewLine,
-            "=" => Symbol::Equals,
-            "+" => Symbol::Plus,
-            "-" => Symbol::Minus,
-            "*" => Symbol::Multiply,
-            "/" => Symbol::Divide,
-            "%" => Symbol::Remains,
-            "^" => Symbol::Exponent,
-            "<" => Symbol::LessThan,
-            ">" => Symbol::GreaterThan,
-            "&" => Symbol::And,
-            "|" => Symbol::Or,
-            "(" => Symbol::LeftParenthesis,
-            ")" => Symbol::RightParenthesis,
-            "{" => Symbol::LeftBrace,
-            "}" => Symbol::RightBrace,
-            "[" => Symbol::LeftBracket,
-            "]" => Symbol::RightBracket,
-            "," => Symbol::Comma,
-            "." => Symbol::Dot,
-            ":" => Symbol::Colon,
-            "_" => Symbol::UnderLine,
-            "@" => Symbol::At,
-            _ => unreachable!(),
-        }
-    }
+    rule symbol() -> Symbol =
+        "**" { Symbol::Exponent }
+        / "==" { Symbol::Equals }
+        / "!=" { Symbol::NotEquals }
+        / "<=" { Symbol::LessThanEquals }
+        / ">=" { Symbol::GreaterThanEquals }
+        / "<<" { Symbol::LeftShift }
+        / ">>" { Symbol::RightShift }
+        / "\n" { Symbol::NewLine }
+        / "\r" { Symbol::NewLine }
+        / "=" { Symbol::Assign }
+        / "+" { Symbol::Plus }
+        / "-" { Symbol::Minus }
+        / "*" { Symbol::Multiply }
+        / "/" { Symbol::Divide }
+        / "%" { Symbol::Remains }
+        / "<" { Symbol::LessThan }
+        / ">" { Symbol::GreaterThan }
+        / "!" { Symbol::Not }
+        / "&" { Symbol::And }
+        / "|" { Symbol::Or }
+        / "^" { Symbol::Xor }
+        / "(" { Symbol::LeftParenthesis }
+        / ")" { Symbol::RightParenthesis }
+        / "{" { Symbol::LeftBrace }
+        / "}" { Symbol::RightBrace }
+        / "[" { Symbol::LeftBracket }
+        / "]" { Symbol::RightBracket }
+        / "," { Symbol::Comma }
+        / "." { Symbol::Dot }
+        / ":" { Symbol::Colon }
+        / "_" { Symbol::UnderLine }
+        / "@" { Symbol::At }
 
     rule _ = [' '|'\t']*
 
@@ -64,17 +68,25 @@ pub enum Token {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Symbol {
     NewLine,
-    Equals,
+    Assign,
     Plus,
     Minus,
     Multiply,
     Divide,
     Remains,
     Exponent,
+    Equals,
+    NotEquals,
     LessThan,
     GreaterThan,
+    LessThanEquals,
+    GreaterThanEquals,
+    Not,
     And,
     Or,
+    Xor,
+    LeftShift,
+    RightShift,
     LeftParenthesis,
     RightParenthesis,
     LeftBrace,
@@ -88,25 +100,18 @@ pub enum Symbol {
     At,
 }
 
-fn lex(code: &str, file_id: usize) -> Vec<PosToken> {
-    lexer::tokens(code, file_id).unwrap()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn symbols() {
-        let code = " \t \n\r = + - * / % ^ < > & | ( ) { } [ ] , . : _ @ ";
+        let code = indoc::indoc! {"
+             \t   \r = + - * / % ** == != < > <= >=
+             ! & | ^ << >> ( ) { } [ ] , . : _ @ "};
         assert_eq!(
             lex(code, 0),
-            vec![
-                PosToken {
-                    file_id: 0,
-                    pos: 3..4,
-                    token: Token::Symbol(Symbol::NewLine)
-                },
+            Ok(vec![
                 PosToken {
                     file_id: 0,
                     pos: 4..5,
@@ -115,7 +120,7 @@ mod tests {
                 PosToken {
                     file_id: 0,
                     pos: 6..7,
-                    token: Token::Symbol(Symbol::Equals)
+                    token: Token::Symbol(Symbol::Assign)
                 },
                 PosToken {
                     file_id: 0,
@@ -144,85 +149,130 @@ mod tests {
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 18..19,
+                    pos: 18..20,
                     token: Token::Symbol(Symbol::Exponent),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 20..21,
+                    pos: 21..23,
+                    token: Token::Symbol(Symbol::Equals),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 24..26,
+                    token: Token::Symbol(Symbol::NotEquals),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 27..28,
                     token: Token::Symbol(Symbol::LessThan),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 22..23,
+                    pos: 29..30,
                     token: Token::Symbol(Symbol::GreaterThan),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 24..25,
-                    token: Token::Symbol(Symbol::And),
+                    pos: 31..33,
+                    token: Token::Symbol(Symbol::LessThanEquals),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 26..27,
-                    token: Token::Symbol(Symbol::Or),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 28..29,
-                    token: Token::Symbol(Symbol::LeftParenthesis),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 30..31,
-                    token: Token::Symbol(Symbol::RightParenthesis),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 32..33,
-                    token: Token::Symbol(Symbol::LeftBrace),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 34..35,
-                    token: Token::Symbol(Symbol::RightBrace),
+                    pos: 34..36,
+                    token: Token::Symbol(Symbol::GreaterThanEquals),
                 },
                 PosToken {
                     file_id: 0,
                     pos: 36..37,
+                    token: Token::Symbol(Symbol::NewLine),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 37..38,
+                    token: Token::Symbol(Symbol::Not),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 39..40,
+                    token: Token::Symbol(Symbol::And),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 41..42,
+                    token: Token::Symbol(Symbol::Or),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 43..44,
+                    token: Token::Symbol(Symbol::Xor),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 45..47,
+                    token: Token::Symbol(Symbol::LeftShift),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 48..50,
+                    token: Token::Symbol(Symbol::RightShift),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 51..52,
+                    token: Token::Symbol(Symbol::LeftParenthesis),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 53..54,
+                    token: Token::Symbol(Symbol::RightParenthesis),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 55..56,
+                    token: Token::Symbol(Symbol::LeftBrace),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 57..58,
+                    token: Token::Symbol(Symbol::RightBrace),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 59..60,
                     token: Token::Symbol(Symbol::LeftBracket),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 38..39,
+                    pos: 61..62,
                     token: Token::Symbol(Symbol::RightBracket),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 40..41,
+                    pos: 63..64,
                     token: Token::Symbol(Symbol::Comma),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 42..43,
+                    pos: 65..66,
                     token: Token::Symbol(Symbol::Dot),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 44..45,
+                    pos: 67..68,
                     token: Token::Symbol(Symbol::Colon),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 46..47,
+                    pos: 69..70,
                     token: Token::Symbol(Symbol::UnderLine),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 48..49,
+                    pos: 71..72,
                     token: Token::Symbol(Symbol::At),
                 },
-            ]
+            ])
         );
     }
 }
