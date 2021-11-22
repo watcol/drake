@@ -12,7 +12,6 @@ syntax and semantics.
 
 ## Statement
 Statement is a base unit of Walnut, categorized into these types:
-- [Empty Statement](#empty-statement)
 - [Value Binding](#value-binding)
 - [Table Header](#table-header)
 - [Function Definition](#function-definition)
@@ -34,7 +33,8 @@ an empty text).
 # All of these are statements.
 stmt = "foo"
   stmt2 = "bar"
-stmt3 =
+stmt3 = \
+# Empty lines in line continuouses are allowed.
   "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do" + \
   "eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad" + \
   "minim veniam, quis nostrud exercitation ullamco laboris nisi ut" + \
@@ -59,10 +59,6 @@ characters are not permitted in comments.
 key = "value" # This is also a comment
 key2 = "# This is not a comment"
 ```
-
-### Empty statement
-Empty statement is a statement with nothing but [whitespaces](#terms). Empty
-statement has no effects to the semantics.
 
 ### Value Binding
 Value Binding is a statement which registers key/value pairs to current
@@ -537,7 +533,9 @@ key = "foo"
 
 ## Terms
 - "Whitespace" means tab (`U+0009`) or space (`U+0020`).
-- "Newline" means line feed (`U+000A`) or carriage return (`U+000D`).
+- "Newline" means a string sequence starts with line feed (`U+000A`) or
+  carriage return (`U+000D`), and contains only tabs, spaces, line feeds,
+  carriage returns or comments.
 - "Parenthesis" means left and right of round brackets (`()`), curly brackets
   (`{}`), or square brackets (`[]`).
 - "Render" means processing and converting the walnut file to other data

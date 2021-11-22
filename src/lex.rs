@@ -11,8 +11,6 @@ peg::parser! { grammar lexer() for str {
         / ">=" { Symbol::GreaterThanEquals }
         / "<<" { Symbol::LeftShift }
         / ">>" { Symbol::RightShift }
-        / "\n" { Symbol::NewLine }
-        / "\r" { Symbol::NewLine }
         / "=" { Symbol::Assign }
         / "+" { Symbol::Plus }
         / "-" { Symbol::Minus }
@@ -37,15 +35,20 @@ peg::parser! { grammar lexer() for str {
         / "_" { Symbol::UnderLine }
         / "@" { Symbol::At }
 
-    rule _ = [' '|'\t']*
+    rule comment() = "#" [^ '\n'|'\r']*
+    rule _ = ([' '|'\t'] / ("\\" [' '|'\t']* __))*
+    rule __ = comment()? ['\n'|'\r'] ([' '|'\t'|'\n'|'\r'] / comment())*
 
     rule token(file_id: usize) -> PosToken
         = s:position!()
           t:(sym:symbol() { Token::Symbol(sym) })
           e:position!() { PosToken{ file_id, pos: s..e, token: t } }
 
-    pub rule tokens(file_id: usize) -> Vec<PosToken>
-        = _ ts:(token(file_id) ** _) _ { ts }
+    rule statement(file_id: usize) -> Vec<PosToken>
+        = _ ts:(token(file_id) ++ _) _ { ts }
+
+    pub rule tokens(file_id: usize) -> Vec<Vec<PosToken>>
+        = __? s:(statement(file_id) ** __) __? { s }
 }}
 
 #[derive(Clone, Debug, PartialEq)]
@@ -67,7 +70,6 @@ pub enum Token {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Symbol {
-    NewLine,
     Assign,
     Plus,
     Minus,
@@ -107,172 +109,165 @@ mod tests {
     #[test]
     fn symbols() {
         let code = indoc::indoc! {"
-             \t   \r = + - * / % ** == != < > <= >=
-             ! & | ^ << >> ( ) { } [ ] , . : _ @ "};
+            # Comment Line
+            \t   \r = + - * / % ** == != < > <= >= \\ # After Comment
+
+            ! & | ^ << >> ( ) { } [ ] , . : _ @
+        "};
         assert_eq!(
             lex(code, 0),
-            Ok(vec![
+            Ok(vec![vec![
                 PosToken {
                     file_id: 0,
-                    pos: 4..5,
-                    token: Token::Symbol(Symbol::NewLine)
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 6..7,
+                    pos: 21..22,
                     token: Token::Symbol(Symbol::Assign)
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 8..9,
+                    pos: 23..24,
                     token: Token::Symbol(Symbol::Plus)
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 10..11,
+                    pos: 25..26,
                     token: Token::Symbol(Symbol::Minus)
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 12..13,
+                    pos: 27..28,
                     token: Token::Symbol(Symbol::Multiply)
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 14..15,
+                    pos: 29..30,
                     token: Token::Symbol(Symbol::Divide),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 16..17,
+                    pos: 31..32,
                     token: Token::Symbol(Symbol::Remains),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 18..20,
+                    pos: 33..35,
                     token: Token::Symbol(Symbol::Exponent),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 21..23,
+                    pos: 36..38,
                     token: Token::Symbol(Symbol::Equals),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 24..26,
+                    pos: 39..41,
                     token: Token::Symbol(Symbol::NotEquals),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 27..28,
+                    pos: 42..43,
                     token: Token::Symbol(Symbol::LessThan),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 29..30,
+                    pos: 44..45,
                     token: Token::Symbol(Symbol::GreaterThan),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 31..33,
+                    pos: 46..48,
                     token: Token::Symbol(Symbol::LessThanEquals),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 34..36,
+                    pos: 49..51,
                     token: Token::Symbol(Symbol::GreaterThanEquals),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 36..37,
-                    token: Token::Symbol(Symbol::NewLine),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 37..38,
+                    pos: 71..72,
                     token: Token::Symbol(Symbol::Not),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 39..40,
+                    pos: 73..74,
                     token: Token::Symbol(Symbol::And),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 41..42,
+                    pos: 75..76,
                     token: Token::Symbol(Symbol::Or),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 43..44,
+                    pos: 77..78,
                     token: Token::Symbol(Symbol::Xor),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 45..47,
+                    pos: 79..81,
                     token: Token::Symbol(Symbol::LeftShift),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 48..50,
+                    pos: 82..84,
                     token: Token::Symbol(Symbol::RightShift),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 51..52,
+                    pos: 85..86,
                     token: Token::Symbol(Symbol::LeftParenthesis),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 53..54,
+                    pos: 87..88,
                     token: Token::Symbol(Symbol::RightParenthesis),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 55..56,
+                    pos: 89..90,
                     token: Token::Symbol(Symbol::LeftBrace),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 57..58,
+                    pos: 91..92,
                     token: Token::Symbol(Symbol::RightBrace),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 59..60,
+                    pos: 93..94,
                     token: Token::Symbol(Symbol::LeftBracket),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 61..62,
+                    pos: 95..96,
                     token: Token::Symbol(Symbol::RightBracket),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 63..64,
+                    pos: 97..98,
                     token: Token::Symbol(Symbol::Comma),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 65..66,
+                    pos: 99..100,
                     token: Token::Symbol(Symbol::Dot),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 67..68,
+                    pos: 101..102,
                     token: Token::Symbol(Symbol::Colon),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 69..70,
+                    pos: 103..104,
                     token: Token::Symbol(Symbol::UnderLine),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 71..72,
+                    pos: 105..106,
                     token: Token::Symbol(Symbol::At),
                 },
-            ])
+            ]])
         );
     }
 }
