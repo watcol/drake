@@ -35,6 +35,43 @@ peg::parser! { grammar lexer() for str {
         / "_" { Symbol::UnderLine }
         / "@" { Symbol::At }
 
+    // TODO: Add test
+    rule ident() -> String = ident_bare() / ident_raw()
+    rule ident_bare() -> String
+        = s:$(['a'..='z'|'A'..='Z'] ['a'..='z'|'A'..='Z'|'0'..='9'|'_']*) { s.to_string() }
+    rule ident_raw() -> String
+        = "${" s:((
+            c:$([^ '\\'|'}']) {? c.chars().next().map(|c| Some(c)).ok_or("char") }
+          / escape("}")
+        )*) "}" { s.into_iter().flat_map(|x| x).collect() }
+
+    use peg::ParseLiteral;
+    rule escape(lit: &'static str) -> Option<char> = "\\" s:(
+        "n" { Some('\n') }
+        / "r" { Some('\r') }
+        / "t" { Some('\t') }
+        / "\\" { Some('\\') }
+        / "\n\r" { None }
+        / "\n" { None }
+        / "\r" { None }
+        / ##parse_string_literal(lit) {?
+            lit.chars()
+               .next()
+               .map(|c| Some(c))
+               .ok_or("literal")
+        }
+        / "x" h:$(['0'..='9'|'a'..='f'|'A'..='F']*<2>) {?
+            u8::from_str_radix(h, 16).map(|u| Some(u as char)).or(Err("hex"))
+        }
+        / "u{" u:$(['0'..='9'|'a'..='f'|'A'..='F']*<2,8>) "}" {?
+            u32::from_str_radix(u, 16)
+                .or(Err("hex"))
+                .and_then(|u| {
+                    u.try_into().map(|u| Some(u)).or(Err("unicode"))
+                })
+        }
+    ) { s }
+
     rule boolean() -> bool = "true" { true } / "false" { false }
 
     rule comment() = "#" [^ '\n'|'\r']*
@@ -44,8 +81,11 @@ peg::parser! { grammar lexer() for str {
 
     rule token(file_id: usize) -> PosToken
         = s:position!()
-          t:(s:symbol() { Token::Symbol(s) }
-           / b:boolean() { Token::Bool(b) })
+          t:(
+              s:symbol() { Token::Symbol(s) }
+            / b:boolean() { Token::Bool(b) }
+            / i:ident() { Token::Ident(i) }
+          )
           e:position!() { PosToken{ file_id, pos: s..e, token: t } }
 
     rule statement(file_id: usize) -> Vec<PosToken>

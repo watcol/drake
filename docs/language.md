@@ -181,15 +181,17 @@ mark and backslash (`U+005C`), and escape sequences starts with backslashes
 can be used:
 
 - `\n` ... linefeed (`U+000A`)
-- `\r` ... cariage return (`U+000D`)
+- `\r` ... carriage return (`U+000D`)
 - `\t` ... horizontal tab (`U+0009`)
 - `\"` ... quatation mark (`U+0022`)
 - `\\` ... backslash (`U+005C`)
+- `\` and linefeed (LF), carriage return (CR), or "carriage return and
+  linefeed" (CRLF) ... ignored
 - `\xXX` ... 8 bit character (`U+00XX`)
 - `\u{XXXX}` ... unicode character (`U+XXXX`)
 
 Note that 8 bit characters are 2-digit hex values, and unicode characters are
-hex values with any digits.
+hex values with 2~8 digits.
 
 ```toml
 string = "The \"Double quated\"\r
@@ -418,7 +420,7 @@ surrounded by a pair of [curly brackets](#terms). This key can contain any key
 except backslashes (`U+005C`) and right curly brackets (`U+007D`). Escape
 patterns similar to [double quoted strings](#double-quoted-string) is
 available, but instead of `\"`, `\}` is used to express right curly brackets
-(`U+007D`). [Whitespaces](#terms) after `$` prefix are ignored.
+(`U+007D`).
 
 Note that bare keys and raw keys consists of same characters (for
 instance `key` and `${key}`) are identical and will conflict.
