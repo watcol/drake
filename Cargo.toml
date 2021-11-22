@@ -16,3 +16,4 @@ include = [
 ]
 
 [dependencies]
+peg = "0.7"

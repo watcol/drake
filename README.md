@@ -1,5 +1,5 @@
 # Walnut
-Walnut is an simple, programmable, human-readable, and obvious configuration
+Walnut is a simple, programmable, and human-readable, configuration
 language.
 
 ## Features
