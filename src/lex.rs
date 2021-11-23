@@ -73,8 +73,6 @@ peg::parser! { grammar lexer() for str {
         / expected!("n, r, t, \\, newline, xXX, or u{XXXX}.")
     ) { s }
 
-    rule boolean() -> bool = "true" { true } / "false" { false }
-
     rule comment() = "#" [^ '\n'|'\r']*
     rule continuous() = "\\" [' '|'\t']* __
     rule _ = ([' '|'\t'] / continuous())*
@@ -84,8 +82,7 @@ peg::parser! { grammar lexer() for str {
         = s:position!()
           t:(
               s:symbol() { Token::Symbol(s) }
-            / b:boolean() { Token::Bool(b) }
-            / k:ident() { Token::Ident(k) }
+            / i:ident() { Token::Ident(i) }
           )
           e:position!() { PosToken{ file_id, pos: s..e, token: t } }
 
@@ -110,7 +107,6 @@ pub enum Token {
     Ident(String),
     Int(i64),
     Float(f64),
-    Bool(bool),
     Str(String),
 }
 
@@ -161,26 +157,6 @@ mod tests {
             # Comment
         "};
         assert_eq!(lex(code, 0), Ok(Vec::new()));
-    }
-
-    #[test]
-    fn bools() {
-        let code = "true false";
-        assert_eq!(
-            lex(code, 0),
-            Ok(vec![vec![
-                PosToken {
-                    file_id: 0,
-                    pos: 0..4,
-                    token: Token::Bool(true),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 5..10,
-                    token: Token::Bool(false),
-                },
-            ]])
-        )
     }
 
     #[test]
