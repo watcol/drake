@@ -302,11 +302,13 @@ float7 = 5_000.000_003   # same as 5000.000003
 ```
 
 #### Boolean
-Boolean is a value, either `true` or `false`.
+Boolean is a value, either "true" or "false". Booleans has no literal
+notation, but can be accessed as [master key](#master-key) constants: `@true`
+and `@false`.
 
 ```toml
-bool1 = true
-bool2 = false
+bool1 = @true
+bool2 = @false
 ```
 
 #### Array
@@ -400,7 +402,7 @@ types of keys:
 - [Raw Key](#raw-key)
 - [Local Key](#local-key)
 - [Root Key](#root-key)
-- [Function Key](#root-key)
+- [Master Key](#master-key)
 
 #### Bare Key
 Bare key is a basic way to express key, and a bare key starts with a 
@@ -494,8 +496,15 @@ bar = .table.value   # "table"
 ${.Not Root} = "Normal Raw Key"
 ```
 
-#### Function Key
-*Comming soon...*
+#### Master Key
+Master key is a way to access master table (another root table), prefixed with
+a commercial at (`U+0040`). [Standard APIs](./api.md) will be stored into the
+master table, and the master table will not be [rendered](#terms).
+
+```toml
+true = @true
+inf = @inf
+```
 
 ### Scope
 Scope is a special table, used as the base point when refering keys. There are
