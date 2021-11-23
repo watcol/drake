@@ -163,6 +163,7 @@ Expression is a way to express a value by evaluating
 ### Literal Value
 Literal value is a value expressed directly. Literal values are classified to
 these types:
+- [Character](#character)
 - [String](#string)
 - [Integer](#integer)
 - [Float](#float)
@@ -171,22 +172,22 @@ these types:
 - [Inline Table](#inline-table)
 - [Inline Function](#inline-function)
 
-#### String
-String is an array of characters. There are 4 ways to express strings.
+#### Character
+Character is a value expresses Unicode code point. characters must be
+surrounded with a apostrophes (`U+0027`). Note that characters will be
+rendered as one-character [strings](#string).
 
-##### Double Quoted String
-Double quoted string starts with a quatation mark (`U+0022`), ends with a not
-escaped quatation mark. Any Unicode characters can be used except quatation
-mark and backslash (`U+005C`), and escape sequences starts with backslashes
-can be used:
+```toml
+char1 = 'a'
+```
 
+In apostrophes, all Unicode characters are allowed, except an apostrophe or a
+backslash (`U+005C`), and these escape sequences are available:
 - `\n` ... linefeed (`U+000A`)
 - `\r` ... carriage return (`U+000D`)
 - `\t` ... horizontal tab (`U+0009`)
-- `\"` ... quatation mark (`U+0022`)
+- `\'` ... apostrophe (`U+0027`)
 - `\\` ... backslash (`U+005C`)
-- `\` and linefeed (LF), carriage return (CR), or "carriage return and
-  linefeed" (CRLF) ... ignored
 - `\xXX` ... 8 bit character (`U+00XX`)
 - `\u{XXXX}` ... unicode character (`U+XXXX`)
 
@@ -194,49 +195,30 @@ Note that 8 bit characters are 2-digit hex values, and unicode characters are
 hex values with 2~8 digits.
 
 ```toml
-string = "The \"Double quated\"\r
-\tString"
+char2 = '\n'
+char3 = '\u{A0}'
 ```
 
-##### Single Quoted String
-Single quoted string is a string surrounded by two apostrophes (`U+0027`).
-No escape sequences are allowed, so apostrophes cannot be included in single
-quoted strings.
+#### String
+String is a sequence of [characters](#character) which starts with a quatation
+mark (`U+0022`) and ends with a not escaped quatation mark. Escape sequences
+similar to characters are available, but instead of `\'`, `\"` can be used to
+escape quotation marks. Note that a line feed, a carriage return, or a pair of
+carriage return and line feed are all normalized to a line feed, and if there
+is an backslash before them, they will be ignored.
 
 ```toml
-string = '\\ServerX\admin$\system32\'
+string1 = "\
+Normal\u{A0}Strings\n"
 ```
 
-##### Double Quoted Unidented String
-Double quoted unindented string is similar to double quoted string, but
-surrounded with triple quotation marks (`"""`), and will be
-[unindented](https://github.com/dtolnay/indoc/tree/master/unindent).
-Quotation marks can be used in the strings.
+##### Raw String
+Raw String is a string with no escapes, surrounded by three or more quotation
+marks. Consecutive quotation marks are allowed if their number is less than
+that of enclosures. Newline characters are normalized as escaped strings.
 
 ```toml
-# python = "def hello():\n    print('Hello, World!')\n\nhello()"
-python = """
-    def hello():
-        print("Hello, world!")
-
-    hello()
-"""
-```
-
-##### Single Quoted Unindented String
-Single quoted unindented string is similar to single quoted string, but
-surrounded with triple apostrophes (`'''`), and will be
-[unindented](https://github.com/dtolnay/indoc/tree/master/unindent).
-Apostrophes can be used in the strings.
-
-```toml
-# python = "def hello():\n    print('Hello, World!')\n\nhello()"
-python = '''
-    def hello():
-        print('Hello, world!')
-
-    hello()
-'''
+string2 = """\ServerX\admin$\system32\"""
 ```
 
 #### Integer
@@ -420,9 +402,9 @@ Raw Key is a way to express key contains characters which can't express with
 [bare keys](#bare-key). A raw key starts with a dollar sign (`U+0024`), and
 surrounded by a pair of [curly brackets](#terms). This key can contain any key
 except backslashes (`U+005C`) and right curly brackets (`U+007D`). Escape
-patterns similar to [double quoted strings](#double-quoted-string) is
-available, but instead of `\"`, `\}` is used to express right curly brackets
-(`U+007D`).
+patterns similar to [strings](#string) is available, but instead of `\"`, `\}`
+can be used to escape right curly brackets, and newline characters will be
+normalized as [strings](#string).
 
 Note that bare keys and raw keys consists of same characters (for
 instance `key` and `${key}`) are identical and will conflict.
