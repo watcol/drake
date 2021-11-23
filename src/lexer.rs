@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-pub use lexer::tokens as lex;
+pub use lexer::tokens as lexer;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PosToken {
