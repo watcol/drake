@@ -61,7 +61,8 @@ peg::parser! { grammar lexer() for str {
     rule token(file_id: usize) -> PosToken
         = s:position!()
           t:(
-            i:integer() { Token::Int(i) }
+            f:float() { Token::Float(f) }
+            / i:integer() { Token::Int(i) }
             / s:string() { Token::Str(s) }
             / c:character() { Token::Char(c) }
             / i:ident() { Token::Ident(i) }
@@ -174,27 +175,37 @@ peg::parser! { grammar lexer() for str {
 
     rule integer() -> i64
         = s:sign() u:(hex() / oct() / bin() / dec()) { s * u }
-    rule sign() -> i64
-        = "+" { 1 } / "-" { -1 } / { 1 }
     rule hex() -> i64
         = "0x" h:$(['0'..='9'|'a'..='f'|'A'..='F']++("_"*)) {?
-            i64::from_str_radix(&h.replace('_', ""), 16)
-                .or(Err("integer too large"))
+            i64::from_str_radix(&h.replace('_', ""), 16).or(Err("too large"))
         }
     rule oct() -> i64
         = "0o" o:$(['0'..='7']++("_"*)) {?
-            i64::from_str_radix(&o.replace('_', ""), 8)
-                .or(Err("integer too large"))
+            i64::from_str_radix(&o.replace('_', ""), 8).or(Err("too large"))
         }
     rule bin() -> i64
         = "0b" b:$(['0'|'1']++("_"*)) {?
-            i64::from_str_radix(&b.replace('_', ""), 2)
-                .or(Err("integer too large"))
+            i64::from_str_radix(&b.replace('_', ""), 2).or(Err("too large"))
         }
+
+    rule float() -> f64
+        = s:$(sign() dec() f:frac()? e:exp()? {?
+            if f.is_some() || e.is_some() {
+                Ok(())
+            } else {
+                Err("invalid float")
+            } }) {? s.replace('_', "").parse().or(Err("too large or small"))
+        }
+    rule frac() -> ()
+        = "." $(['0'..='9']++("_"*))
+    rule exp() -> ()
+        = ("e"/"E") sign() $(['0'..='9'] ++ ("_"*))
+
+    rule sign() -> i64
+        = "+" { 1 } / "-" { -1 } / { 1 }
     rule dec() -> i64
-        = d:$(['1'..='9'] "_"* ['0'..='9'] ++ ("_"*)) {?
-            i64::from_str_radix(&d.replace('_', ""), 10)
-                .or(Err("integer too large"))
+        = d:$(['1'..='9'] "_"* ['0'..='9'] ** ("_"*)) {?
+            i64::from_str_radix(&d.replace('_', ""), 10).or(Err("too large"))
         }
         / "0" { 0 }
 
@@ -409,6 +420,36 @@ mod tests {
                     file_id: 0,
                     pos: 33..40,
                     token: Token::Int(-1_2__3),
+                },
+            ])
+        );
+    }
+
+    #[test]
+    fn floats() {
+        let code = "1_2_3.0_2_3 +23e-0_2 -1.1e+2 2e2";
+        assert_eq!(
+            lex(code, 0),
+            Ok(vec![
+                PosToken {
+                    file_id: 0,
+                    pos: 0..11,
+                    token: Token::Float(123.023f64),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 12..20,
+                    token: Token::Float(23e-2f64),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 21..28,
+                    token: Token::Float(-1.1e2f64),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 29..32,
+                    token: Token::Float(2e2f64),
                 },
             ])
         );
