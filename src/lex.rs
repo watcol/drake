@@ -11,7 +11,6 @@ pub struct PosToken {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
-    Newline,
     Symbol(Symbol),
     Ident(String),
     Char(char),
@@ -22,6 +21,7 @@ pub enum Token {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Symbol {
+    Newline,
     Assign,
     Plus,
     Minus,
@@ -61,8 +61,7 @@ peg::parser! { grammar lexer() for str {
     rule token(file_id: usize) -> PosToken
         = s:position!()
           t:(
-            __ &[_] { Token::Newline }
-            / s:symbol() { Token::Symbol(s) }
+            s:symbol() { Token::Symbol(s) }
             / i:ident() { Token::Ident(i) }
             / c:character() { Token::Char(c) }
             / s:string() { Token::Str(s) }
@@ -70,7 +69,8 @@ peg::parser! { grammar lexer() for str {
           e:position!() { PosToken{ file_id, pos: s..e, token: t } }
 
     rule symbol() -> Symbol =
-        "**" { Symbol::Exponent }
+        __ &[_] { Symbol::Newline }
+        / "**" { Symbol::Exponent }
         / "==" { Symbol::Equals }
         / "!=" { Symbol::NotEquals }
         / "<=" { Symbol::LessThanEquals }
@@ -207,7 +207,7 @@ mod tests {
                 PosToken {
                     file_id: 0,
                     pos: 13..31,
-                    token: Token::Newline,
+                    token: Token::Symbol(Symbol::Newline),
                 },
                 PosToken {
                     file_id: 0,
