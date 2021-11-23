@@ -36,7 +36,6 @@ peg::parser! { grammar lexer() for str {
         / "@" { Symbol::At }
         / expected!("symbols")
 
-    // TODO: Add test
     rule ident() -> String = ident_bare() / ident_raw() / expected!("identifier")
     rule ident_bare() -> String
         = s:$(['a'..='z'|'A'..='Z'] ['a'..='z'|'A'..='Z'|'0'..='9'|'_']*) { s.to_string() }
@@ -180,6 +179,29 @@ mod tests {
                     pos: 5..10,
                     token: Token::Bool(false),
                 },
+            ]])
+        )
+    }
+
+    #[test]
+    fn idents() {
+        let code = indoc::indoc! {"
+            f00_B4r ${\\\\{All\\u{00A0}characters\\
+            \\ncan be used.\\}}
+        "};
+        assert_eq!(
+            lex(code, 0),
+            Ok(vec![vec![
+                PosToken {
+                    file_id: 0,
+                    pos: 0..7,
+                    token: Token::Ident(String::from("f00_B4r")),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 8..53,
+                    token: Token::Ident(String::from("\\{All\u{A0}characters\ncan be used.}"))
+                }
             ]])
         )
     }
