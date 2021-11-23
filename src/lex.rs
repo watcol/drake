@@ -4,7 +4,6 @@ pub use lexer::tokens as lex;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PosToken {
-    file_id: usize,
     pos: Range<usize>,
     token: Token,
 }
@@ -55,10 +54,10 @@ pub enum Symbol {
 }
 
 peg::parser! { grammar lexer() for str {
-    pub rule tokens(file_id: usize) -> Vec<PosToken>
-        = __? s:(token(file_id) ** _) __? { s }
+    pub rule tokens() -> Vec<PosToken>
+        = __? s:(token() ** _) __? { s }
 
-    rule token(file_id: usize) -> PosToken
+    rule token() -> PosToken
         = s:position!()
           t:(
             f:float() { Token::Float(f) }
@@ -68,7 +67,7 @@ peg::parser! { grammar lexer() for str {
             / i:ident() { Token::Ident(i) }
             / s:symbol() { Token::Symbol(s) }
           )
-          e:position!() { PosToken{ file_id, pos: s..e, token: t } }
+          e:position!() { PosToken{ pos: s..e, token: t } }
 
     rule symbol() -> Symbol =
         __ &[_] { Symbol::Newline }
@@ -234,20 +233,17 @@ mod tests {
             # Comment
         "};
         assert_eq!(
-            lex(code, 0),
+            lex(code),
             Ok(vec![
                 PosToken {
-                    file_id: 0,
                     pos: 10..13,
                     token: Token::Char('a'),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 13..31,
                     token: Token::Symbol(Symbol::Newline),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 31..34,
                     token: Token::Char('b'),
                 },
@@ -259,35 +255,29 @@ mod tests {
     fn symbols() {
         let code = ". _ = == ! !=";
         assert_eq!(
-            lex(code, 0),
+            lex(code),
             Ok(vec![
                 PosToken {
-                    file_id: 0,
                     pos: 0..1,
                     token: Token::Symbol(Symbol::Dot)
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 2..3,
                     token: Token::Symbol(Symbol::UnderLine)
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 4..5,
                     token: Token::Symbol(Symbol::Assign),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 6..8,
                     token: Token::Symbol(Symbol::Equals),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 9..10,
                     token: Token::Symbol(Symbol::Not),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 11..13,
                     token: Token::Symbol(Symbol::NotEquals),
                 },
@@ -302,15 +292,13 @@ mod tests {
             \ncan be used.\}}
         "#};
         assert_eq!(
-            lex(code, 0),
+            lex(code),
             Ok(vec![
                 PosToken {
-                    file_id: 0,
                     pos: 0..7,
                     token: Token::Ident(String::from("f00_B4r")),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 8..53,
                     token: Token::Ident(String::from("\\{All\u{A0}characters\ncan be used.}")),
                 }
@@ -322,25 +310,21 @@ mod tests {
     fn chars() {
         let code = "'a' '\\n' '\\'' '\\\\'";
         assert_eq!(
-            lex(code, 0),
+            lex(code),
             Ok(vec![
                 PosToken {
-                    file_id: 0,
                     pos: 0..3,
                     token: Token::Char('a'),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 4..8,
                     token: Token::Char('\n'),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 9..13,
                     token: Token::Char('\''),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 14..18,
                     token: Token::Char('\\'),
                 },
@@ -356,15 +340,13 @@ mod tests {
             \"foo\""
         "#};
         assert_eq!(
-            lex(code1, 0),
+            lex(code1),
             Ok(vec![
                 PosToken {
-                    file_id: 0,
                     pos: 0..2,
                     token: Token::Str(String::from(""))
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 3..23,
                     token: Token::Str(String::from("\t\r\x00\n\"foo\""))
                 }
@@ -372,18 +354,16 @@ mod tests {
         );
         let code2 = "\"\"\"\\not\\escaped\n\r\n\r\\\\\"\"\"";
         assert_eq!(
-            lex(code2, 0),
+            lex(code2),
             Ok(vec![PosToken {
-                file_id: 0,
                 pos: 0..24,
                 token: Token::Str(String::from("\\not\\escaped\n\n\n\\\\"))
             }])
         );
         let code3 = r#"""""(""")"""""#;
         assert_eq!(
-            lex(code3, 0),
+            lex(code3),
             Ok(vec![PosToken {
-                file_id: 0,
                 pos: 0..13,
                 token: Token::Str(String::from(r#"(""")"#)),
             }])
@@ -394,30 +374,25 @@ mod tests {
     fn ints() {
         let code = "0xd34db33f +0o644 -0b10011110 42 -1_2__3";
         assert_eq!(
-            lex(code, 0),
+            lex(code),
             Ok(vec![
                 PosToken {
-                    file_id: 0,
                     pos: 0..10,
                     token: Token::Int(0xd34db33f),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 11..17,
                     token: Token::Int(0o644),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 18..29,
                     token: Token::Int(-0b10011110),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 30..32,
                     token: Token::Int(42),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 33..40,
                     token: Token::Int(-1_2__3),
                 },
@@ -429,25 +404,21 @@ mod tests {
     fn floats() {
         let code = "1_2_3.0_2_3 +23e-0_2 -1.1e+2 2e2";
         assert_eq!(
-            lex(code, 0),
+            lex(code),
             Ok(vec![
                 PosToken {
-                    file_id: 0,
                     pos: 0..11,
                     token: Token::Float(123.023f64),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 12..20,
                     token: Token::Float(23e-2f64),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 21..28,
                     token: Token::Float(-1.1e2f64),
                 },
                 PosToken {
-                    file_id: 0,
                     pos: 29..32,
                     token: Token::Float(2e2f64),
                 },
