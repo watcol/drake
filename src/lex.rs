@@ -61,10 +61,11 @@ peg::parser! { grammar lexer() for str {
     rule token(file_id: usize) -> PosToken
         = s:position!()
           t:(
-            s:symbol() { Token::Symbol(s) }
-            / i:ident() { Token::Ident(i) }
-            / c:character() { Token::Char(c) }
+            i:integer() { Token::Int(i) }
             / s:string() { Token::Str(s) }
+            / c:character() { Token::Char(c) }
+            / i:ident() { Token::Ident(i) }
+            / s:symbol() { Token::Symbol(s) }
           )
           e:position!() { PosToken{ file_id, pos: s..e, token: t } }
 
@@ -150,10 +151,6 @@ peg::parser! { grammar lexer() for str {
           / "\\" normal_newline() { None }
         )*) "\"" { s.into_iter().flat_map(|x| x).collect() }
 
-
-    rule normal_newline()
-        = ("\r\n" / "\n" / "\r")
-
     use peg::ParseLiteral;
     rule escape(lit: &'static str) -> char = "\\" s:(
         "n" { '\n' }
@@ -171,6 +168,35 @@ peg::parser! { grammar lexer() for str {
         }
         / expected!("n, r, t, \\, newline, xXX, or u{XXXX}.")
     ) { s }
+
+    rule normal_newline()
+        = ("\r\n" / "\n" / "\r")
+
+    rule integer() -> i64
+        = s:sign() u:(hex() / oct() / bin() / dec()) { s * u }
+    rule sign() -> i64
+        = "+" { 1 } / "-" { -1 } / { 1 }
+    rule hex() -> i64
+        = "0x" h:$(['0'..='9'|'a'..='f'|'A'..='F']++("_"*)) {?
+            i64::from_str_radix(&h.replace('_', ""), 16)
+                .or(Err("integer too large"))
+        }
+    rule oct() -> i64
+        = "0o" o:$(['0'..='7']++("_"*)) {?
+            i64::from_str_radix(&o.replace('_', ""), 8)
+                .or(Err("integer too large"))
+        }
+    rule bin() -> i64
+        = "0b" b:$(['0'|'1']++("_"*)) {?
+            i64::from_str_radix(&b.replace('_', ""), 2)
+                .or(Err("integer too large"))
+        }
+    rule dec() -> i64
+        = d:$(['1'..='9'] "_"* ['0'..='9'] ++ ("_"*)) {?
+            i64::from_str_radix(&d.replace('_', ""), 10)
+                .or(Err("integer too large"))
+        }
+        / "0" { 0 }
 
     rule comment() = "#" [^ '\n'|'\r']*
     rule continuous() = "\\" [' '|'\t']* __
@@ -350,6 +376,41 @@ mod tests {
                 pos: 0..13,
                 token: Token::Str(String::from(r#"(""")"#)),
             }])
+        );
+    }
+
+    #[test]
+    fn ints() {
+        let code = "0xd34db33f +0o644 -0b10011110 42 -1_2__3";
+        assert_eq!(
+            lex(code, 0),
+            Ok(vec![
+                PosToken {
+                    file_id: 0,
+                    pos: 0..10,
+                    token: Token::Int(0xd34db33f),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 11..17,
+                    token: Token::Int(0o644),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 18..29,
+                    token: Token::Int(-0b10011110),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 30..32,
+                    token: Token::Int(42),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 33..40,
+                    token: Token::Int(-1_2__3),
+                },
+            ])
         );
     }
 }
