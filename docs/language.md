@@ -427,7 +427,7 @@ instance `key` and `${key}`) are identical and will conflict.
 
 ```toml
 ${raw key} = "This is a raw key."
-$  {\\{All\u{00A0}characters\ncan be used.\}} = true
+${\\{All\u{00A0}characters\ncan be used.\}} = true
 ```
 
 #### Local Key
