@@ -1,1 +1,1 @@
-mod lex;
+mod lexer;
