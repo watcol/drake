@@ -181,8 +181,9 @@ rendered as one-character [strings](#string).
 char1 = 'a'
 ```
 
-In apostrophes, all Unicode characters are allowed, except an apostrophe or a
-backslash (`U+005C`), and these escape sequences are available:
+In apostrophes, all Unicode characters are allowed, except an apostrophe, a
+backslash (`U+005C`), a line feed (`U+000A`), a carriage return (`U+000D`) and
+these escape sequences are available:
 - `\n` ... linefeed (`U+000A`)
 - `\r` ... carriage return (`U+000D`)
 - `\t` ... horizontal tab (`U+0009`)
