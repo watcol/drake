@@ -34,12 +34,13 @@ peg::parser! { grammar lexer() for str {
         / ":" { Symbol::Colon }
         / "_" { Symbol::UnderLine }
         / "@" { Symbol::At }
+        / expected!("symbols")
 
     // TODO: Add test
-    rule ident() -> String = ident_bare() / ident_raw()
-    rule ident_bare() -> String
+    rule key() -> String = key_bare() / key_raw() / expected!("key")
+    rule key_bare() -> String
         = s:$(['a'..='z'|'A'..='Z'] ['a'..='z'|'A'..='Z'|'0'..='9'|'_']*) { s.to_string() }
-    rule ident_raw() -> String
+    rule key_raw() -> String
         = "${" s:((
             c:$([^ '\\'|'}']) {? c.chars().next().map(|c| Some(c)).ok_or("char") }
           / escape("}")
@@ -70,6 +71,7 @@ peg::parser! { grammar lexer() for str {
                     u.try_into().map(|u| Some(u)).or(Err("unicode"))
                 })
         }
+        / expected!("n, r, t, \\, newline, xXX, or u{XXXX}.")
     ) { s }
 
     rule boolean() -> bool = "true" { true } / "false" { false }
@@ -84,7 +86,7 @@ peg::parser! { grammar lexer() for str {
           t:(
               s:symbol() { Token::Symbol(s) }
             / b:boolean() { Token::Bool(b) }
-            / i:ident() { Token::Ident(i) }
+            / k:key() { Token::Key(k) }
           )
           e:position!() { PosToken{ file_id, pos: s..e, token: t } }
 
@@ -106,7 +108,7 @@ pub struct PosToken {
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     Symbol(Symbol),
-    Ident(String),
+    Key(String),
     Int(i64),
     Float(f64),
     Bool(bool),
