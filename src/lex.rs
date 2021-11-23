@@ -3,6 +3,22 @@ use std::ops::Range;
 pub use lexer::tokens as lex;
 
 peg::parser! { grammar lexer() for str {
+    pub rule tokens(file_id: usize) -> Vec<Vec<PosToken>>
+        = __? s:(statement(file_id) ** __) __? { s }
+        / __? { Vec::new() }
+
+    rule statement(file_id: usize) -> Vec<PosToken>
+        = ts:(token(file_id) ++ _) { ts }
+
+    rule token(file_id: usize) -> PosToken
+        = s:position!()
+          t:(
+              s:symbol() { Token::Symbol(s) }
+            / i:ident() { Token::Ident(i) }
+            / c:character() { Token::Char(c) }
+          )
+          e:position!() { PosToken{ file_id, pos: s..e, token: t } }
+
     rule symbol() -> Symbol =
         "**" { Symbol::Exponent }
         / "==" { Symbol::Equals }
@@ -36,69 +52,57 @@ peg::parser! { grammar lexer() for str {
         / "@" { Symbol::At }
         / expected!("symbols")
 
-    rule ident() -> String = ident_bare() / ident_raw() / expected!("identifier")
+    rule ident() -> String = ident_bare() / ident_raw() / expected!("ident")
     rule ident_bare() -> String
-        = s:$(['a'..='z'|'A'..='Z'] ['a'..='z'|'A'..='Z'|'0'..='9'|'_']*) { s.to_string() }
+        = s:$(['a'..='z'|'A'..='Z'] ['a'..='z'|'A'..='Z'|'0'..='9'|'_']*) {
+            s.to_string()
+        }
     rule ident_raw() -> String
         = "${" s:((
             c:$([^ '\\'|'}'|'\n'|'\r']) {?
-                c.chars()
-                 .next()
-                 .map(|c| Some(c))
-                 .ok_or("char")
+                c.chars().next().map(|c| Some(c)).ok_or("char")
             }
           / c:normal_newline() { Some(c) }
-          / escape("}")
+          / c:escape("}") { Some(c) }
+          / "\\" normal_newline() { None }
         )*) "}" { s.into_iter().flat_map(|x| x).collect() }
+
+    rule character() -> char
+        = "'" c:(
+            c:$([^ '\\'|'\''|'\n'|'\r']) {? c.chars().next().ok_or("char") }
+          / escape("\'")
+          ) "'" { c }
 
     rule normal_newline() -> char
         = ("\r\n" / "\n" / "\r") { '\n' }
 
     use peg::ParseLiteral;
-    rule escape(lit: &'static str) -> Option<char> = "\\" s:(
-        "n" { Some('\n') }
-        / "r" { Some('\r') }
-        / "t" { Some('\t') }
-        / "\\" { Some('\\') }
-        / ##parse_string_literal(lit) {?
-            lit.chars()
-               .next()
-               .map(|c| Some(c))
-               .ok_or("literal")
-        }
+    rule escape(lit: &'static str) -> char = "\\" s:(
+        "n" { '\n' }
+        / "r" { '\r' }
+        / "t" { '\t' }
+        / "\\" { '\\' }
+        / ##parse_string_literal(lit) {? lit.chars().next().ok_or("literal") }
         / "x" h:$(['0'..='9'|'a'..='f'|'A'..='F']*<2>) {?
-            u8::from_str_radix(h, 16).map(|u| Some(u as char)).or(Err("hex"))
+            u8::from_str_radix(h, 16).map(|h| h as char).or(Err("hex"))
         }
         / "u{" u:$(['0'..='9'|'a'..='f'|'A'..='F']*<2,8>) "}" {?
             u32::from_str_radix(u, 16)
                 .or(Err("hex"))
-                .and_then(|u| {
-                    u.try_into().map(|u| Some(u)).or(Err("unicode"))
-                })
+                .and_then(|u| u.try_into().or(Err("unicode")))
         }
-        / normal_newline() { None }
         / expected!("n, r, t, \\, newline, xXX, or u{XXXX}.")
     ) { s }
 
     rule comment() = "#" [^ '\n'|'\r']*
     rule continuous() = "\\" [' '|'\t']* __
     rule _ = ([' '|'\t'] / continuous())*
-    rule __ = _ comment()? ['\n'|'\r'] ([' '|'\t'|'\n'|'\r'] / comment() / continuous())*
+    rule __ = _ comment()? ['\n'|'\r'] (
+        [' '|'\t'|'\n'|'\r']
+      / comment()
+      / continuous()
+    )*
 
-    rule token(file_id: usize) -> PosToken
-        = s:position!()
-          t:(
-              s:symbol() { Token::Symbol(s) }
-            / i:ident() { Token::Ident(i) }
-          )
-          e:position!() { PosToken{ file_id, pos: s..e, token: t } }
-
-    rule statement(file_id: usize) -> Vec<PosToken>
-        = ts:(token(file_id) ++ _) { ts }
-
-    pub rule tokens(file_id: usize) -> Vec<Vec<PosToken>>
-        = __? s:(statement(file_id) ** __) __? { s }
-        / __? { Vec::new() }
 }}
 
 #[derive(Clone, Debug, PartialEq)]
@@ -112,9 +116,10 @@ pub struct PosToken {
 pub enum Token {
     Symbol(Symbol),
     Ident(String),
+    Char(char),
+    Str(String),
     Int(i64),
     Float(f64),
-    Str(String),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -167,6 +172,46 @@ mod tests {
     }
 
     #[test]
+    fn symbols() {
+        let code = ". _ = == ! !=";
+        assert_eq!(
+            lex(code, 0),
+            Ok(vec![vec![
+                PosToken {
+                    file_id: 0,
+                    pos: 0..1,
+                    token: Token::Symbol(Symbol::Dot)
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 2..3,
+                    token: Token::Symbol(Symbol::UnderLine)
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 4..5,
+                    token: Token::Symbol(Symbol::Assign),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 6..8,
+                    token: Token::Symbol(Symbol::Equals),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 9..10,
+                    token: Token::Symbol(Symbol::Not),
+                },
+                PosToken {
+                    file_id: 0,
+                    pos: 11..13,
+                    token: Token::Symbol(Symbol::NotEquals),
+                },
+            ]])
+        );
+    }
+
+    #[test]
     fn idents() {
         let code = indoc::indoc! {"
             f00_B4r ${\\\\{All\\u{00A0}characters\\
@@ -190,162 +235,32 @@ mod tests {
     }
 
     #[test]
-    fn symbols() {
-        let code = "= + - * / % ** == != < > <= >= ! & | ^ << >> ( ) { } [ ] , . : _ @";
+    fn chars() {
+        let code = "'a' '\\n' '\\'' '\\\\'";
         assert_eq!(
             lex(code, 0),
             Ok(vec![vec![
                 PosToken {
                     file_id: 0,
-                    pos: 0..1,
-                    token: Token::Symbol(Symbol::Assign)
+                    pos: 0..3,
+                    token: Token::Char('a')
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 2..3,
-                    token: Token::Symbol(Symbol::Plus)
+                    pos: 4..8,
+                    token: Token::Char('\n'),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 4..5,
-                    token: Token::Symbol(Symbol::Minus)
+                    pos: 9..13,
+                    token: Token::Char('\''),
                 },
                 PosToken {
                     file_id: 0,
-                    pos: 6..7,
-                    token: Token::Symbol(Symbol::Multiply)
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 8..9,
-                    token: Token::Symbol(Symbol::Divide),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 10..11,
-                    token: Token::Symbol(Symbol::Remains),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 12..14,
-                    token: Token::Symbol(Symbol::Exponent),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 15..17,
-                    token: Token::Symbol(Symbol::Equals),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 18..20,
-                    token: Token::Symbol(Symbol::NotEquals),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 21..22,
-                    token: Token::Symbol(Symbol::LessThan),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 23..24,
-                    token: Token::Symbol(Symbol::GreaterThan),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 25..27,
-                    token: Token::Symbol(Symbol::LessThanEquals),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 28..30,
-                    token: Token::Symbol(Symbol::GreaterThanEquals),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 31..32,
-                    token: Token::Symbol(Symbol::Not),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 33..34,
-                    token: Token::Symbol(Symbol::And),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 35..36,
-                    token: Token::Symbol(Symbol::Or),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 37..38,
-                    token: Token::Symbol(Symbol::Xor),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 39..41,
-                    token: Token::Symbol(Symbol::LeftShift),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 42..44,
-                    token: Token::Symbol(Symbol::RightShift),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 45..46,
-                    token: Token::Symbol(Symbol::LeftParenthesis),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 47..48,
-                    token: Token::Symbol(Symbol::RightParenthesis),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 49..50,
-                    token: Token::Symbol(Symbol::LeftBrace),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 51..52,
-                    token: Token::Symbol(Symbol::RightBrace),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 53..54,
-                    token: Token::Symbol(Symbol::LeftBracket),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 55..56,
-                    token: Token::Symbol(Symbol::RightBracket),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 57..58,
-                    token: Token::Symbol(Symbol::Comma),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 59..60,
-                    token: Token::Symbol(Symbol::Dot),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 61..62,
-                    token: Token::Symbol(Symbol::Colon),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 63..64,
-                    token: Token::Symbol(Symbol::UnderLine),
-                },
-                PosToken {
-                    file_id: 0,
-                    pos: 65..66,
-                    token: Token::Symbol(Symbol::At),
+                    pos: 14..18,
+                    token: Token::Char('\\'),
                 },
             ]])
-        );
+        )
     }
 }
