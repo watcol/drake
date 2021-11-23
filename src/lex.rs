@@ -41,9 +41,18 @@ peg::parser! { grammar lexer() for str {
         = s:$(['a'..='z'|'A'..='Z'] ['a'..='z'|'A'..='Z'|'0'..='9'|'_']*) { s.to_string() }
     rule ident_raw() -> String
         = "${" s:((
-            c:$([^ '\\'|'}']) {? c.chars().next().map(|c| Some(c)).ok_or("char") }
+            c:$([^ '\\'|'}'|'\n'|'\r']) {?
+                c.chars()
+                 .next()
+                 .map(|c| Some(c))
+                 .ok_or("char")
+            }
+          / c:normal_newline() { Some(c) }
           / escape("}")
         )*) "}" { s.into_iter().flat_map(|x| x).collect() }
+
+    rule normal_newline() -> char
+        = ("\r\n" / "\n" / "\r") { '\n' }
 
     use peg::ParseLiteral;
     rule escape(lit: &'static str) -> Option<char> = "\\" s:(
@@ -51,9 +60,6 @@ peg::parser! { grammar lexer() for str {
         / "r" { Some('\r') }
         / "t" { Some('\t') }
         / "\\" { Some('\\') }
-        / "\n\r" { None }
-        / "\n" { None }
-        / "\r" { None }
         / ##parse_string_literal(lit) {?
             lit.chars()
                .next()
@@ -70,6 +76,7 @@ peg::parser! { grammar lexer() for str {
                     u.try_into().map(|u| Some(u)).or(Err("unicode"))
                 })
         }
+        / normal_newline() { None }
         / expected!("n, r, t, \\, newline, xXX, or u{XXXX}.")
     ) { s }
 
