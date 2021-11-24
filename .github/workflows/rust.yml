@@ -19,6 +19,6 @@ jobs:
         toolchain: stable
         components: clippy
     - name: Lint
-      run: cargo clippy --deny clippy::all
+      run: cargo clippy -- -D clippy::all
     - name: Run tests
       run: cargo test --verbose
