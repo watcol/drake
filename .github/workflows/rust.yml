@@ -1,4 +1,4 @@
-name: Lint and Test
+name: Test
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Cachees
+    - name: Cache
       uses: actions/cache@v2
       with:
         path: |
@@ -20,7 +20,7 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - name: Setup Rust
+    - name: Setup
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
@@ -29,5 +29,5 @@ jobs:
         override: true
     - name: Lint
       run: cargo clippy -- -D clippy::all
-    - name: Run tests
+    - name: Test
       run: cargo test --verbose
