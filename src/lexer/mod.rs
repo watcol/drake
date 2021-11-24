@@ -116,12 +116,12 @@ peg::parser! { grammar lexer() for str {
     rule ident_raw() -> String
         = "${" s:((
             c:$([^ '\\'|'}'|'\n'|'\r']) {?
-                c.chars().next().map(|c| Some(c)).ok_or("char")
+                c.chars().next().map(Some).ok_or("char")
             }
           / normal_newline() { Some('\n') }
           / c:escape("}") { Some(c) }
           / "\\" normal_newline() { None }
-        )*) "}" { s.into_iter().flat_map(|x| x).collect() }
+        )*) "}" { s.into_iter().flatten().collect() }
 
     rule character() -> char
         = "'" c:(
@@ -146,12 +146,12 @@ peg::parser! { grammar lexer() for str {
     rule normal_string() -> String
         = "\"" s:((
             c:$([^ '\\'|'"'|'\n'|'\r']) {?
-                c.chars().next().map(|c| Some(c)).ok_or("char")
+                c.chars().next().map(Some).ok_or("char")
             }
           / normal_newline() { Some('\n') }
           / c:escape("\"") { Some(c) }
           / "\\" normal_newline() { None }
-        )*) "\"" { s.into_iter().flat_map(|x| x).collect() }
+        )*) "\"" { s.into_iter().flatten().collect() }
 
     use peg::ParseLiteral;
     rule escape(lit: &'static str) -> char = "\\" s:(
@@ -206,7 +206,7 @@ peg::parser! { grammar lexer() for str {
         = "+" { 1 } / "-" { -1 } / { 1 }
     rule dec() -> i64
         = d:$(['1'..='9'] "_"* ['0'..='9'] ** ("_"*)) {?
-            i64::from_str_radix(&d.replace('_', ""), 10).or(Err("too large"))
+            d.replace('_', "").parse().or(Err("too large"))
         }
         / "0" { 0 }
 
