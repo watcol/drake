@@ -36,9 +36,6 @@ jobs:
       with:
         profile: minimal
         toolchain: stable
-        components: clippy
         override: true
-    - name: Lint
-      run: cargo clippy -- -D clippy::all
     - name: Test
       run: cargo test --verbose
