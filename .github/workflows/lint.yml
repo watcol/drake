@@ -16,6 +16,7 @@ on:
 
 jobs:
   build:
+    name: clippy
     runs-on: ubuntu-latest
 
     steps:
