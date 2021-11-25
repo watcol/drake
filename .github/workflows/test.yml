@@ -8,6 +8,10 @@ on:
       - 'README.md'
       - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'LICENSE'
     branches: [ main ]
 
 jobs:
