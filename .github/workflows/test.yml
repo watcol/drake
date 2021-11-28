@@ -8,7 +8,14 @@ on:
       - 'README.md'
       - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'LICENSE'
     branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   build:
@@ -36,9 +43,6 @@ jobs:
       with:
         profile: minimal
         toolchain: stable
-        components: clippy
         override: true
-    - name: Lint
-      run: cargo clippy -- -D clippy::all
     - name: Test
       run: cargo test --verbose
