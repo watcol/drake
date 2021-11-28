@@ -172,6 +172,7 @@ fn ints() {
             },
             PosToken {
                 pos: 33..40,
+                #[allow(clippy::inconsistent_digit_grouping)]
                 token: Token::Int(-1_2__3),
             },
         ])
