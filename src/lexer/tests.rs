@@ -150,7 +150,7 @@ fn string() {
 
 #[test]
 fn ints() {
-    let code = "0xd34db33f +0o644 -0b10011110 42 -1_2__3";
+    let code = "0xd34db33f 0o644 0b10011110 42 1_2__3";
     assert_eq!(
         lexer(code),
         Ok(vec![
@@ -159,21 +159,21 @@ fn ints() {
                 token: Token::Int(0xd34db33f),
             },
             PosToken {
-                pos: 11..17,
+                pos: 11..16,
                 token: Token::Int(0o644),
             },
             PosToken {
-                pos: 18..29,
-                token: Token::Int(-0b10011110),
+                pos: 17..27,
+                token: Token::Int(0b10011110),
             },
             PosToken {
-                pos: 30..32,
+                pos: 28..30,
                 token: Token::Int(42),
             },
             PosToken {
-                pos: 33..40,
+                pos: 31..37,
                 #[allow(clippy::inconsistent_digit_grouping)]
-                token: Token::Int(-1_2__3),
+                token: Token::Int(1_2__3),
             },
         ])
     );
@@ -181,7 +181,7 @@ fn ints() {
 
 #[test]
 fn floats() {
-    let code = "1_2_3.0_2_3 +23e-0_2 -1.1e+2 2e2";
+    let code = "1_2_3.0_2_3 23e-0_2 1.1e+2 2e2";
     assert_eq!(
         lexer(code),
         Ok(vec![
@@ -190,15 +190,15 @@ fn floats() {
                 token: Token::Float(123.023f64),
             },
             PosToken {
-                pos: 12..20,
+                pos: 12..19,
                 token: Token::Float(23e-2f64),
             },
             PosToken {
-                pos: 21..28,
-                token: Token::Float(-1.1e2f64),
+                pos: 20..26,
+                token: Token::Float(1.1e2f64),
             },
             PosToken {
-                pos: 29..32,
+                pos: 27..30,
                 token: Token::Float(2e2f64),
             },
         ])

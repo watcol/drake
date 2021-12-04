@@ -175,7 +175,7 @@ peg::parser! { grammar lexer() for str {
         = ("\r\n" / "\n" / "\r")
 
     rule integer() -> i64
-        = s:sign() u:(hex() / oct() / bin() / dec()) { s * u }
+        = hex() / oct() / bin() / dec()
     rule hex() -> i64
         = "0x" h:$(['0'..='9'|'a'..='f'|'A'..='F']++("_"*)) {?
             i64::from_str_radix(&h.replace('_', ""), 16).or(Err("too large"))
@@ -190,7 +190,7 @@ peg::parser! { grammar lexer() for str {
         }
 
     rule float() -> f64
-        = s:$(sign() dec() f:frac()? e:exp()? {?
+        = s:$(dec() f:frac()? e:exp()? {?
             if f.is_some() || e.is_some() {
                 Ok(())
             } else {
@@ -200,10 +200,8 @@ peg::parser! { grammar lexer() for str {
     rule frac() -> ()
         = "." $(['0'..='9']++("_"*))
     rule exp() -> ()
-        = ("e"/"E") sign() $(['0'..='9'] ++ ("_"*))
+        = ("e"/"E") ("+"/"-")? $(['0'..='9'] ++ ("_"*))
 
-    rule sign() -> i64
-        = "+" { 1 } / "-" { -1 } / { 1 }
     rule dec() -> i64
         = d:$(['1'..='9'] "_"* ['0'..='9'] ** ("_"*)) {?
             d.replace('_', "").parse().or(Err("too large"))
