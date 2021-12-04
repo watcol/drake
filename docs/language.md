@@ -284,10 +284,17 @@ float6 = -2E+4           # same as -20000.0
 float7 = 5_000.000_003   # same as 5000.000003
 ```
 
+Use `@inf` and `@nan` to express positive infinity and "Not a number."
+
+```toml
+float8 = @inf    # Positive Infinity
+float9 = -@inf   # Negative Infinity
+float10 = @nan   # Not a number.
+```
+
 #### Boolean
-Boolean is a value, either "true" or "false". Booleans has no literal
-notation, but can be accessed as [master key](#master-key) constants: `@true`
-and `@false`.
+Boolean is a value, either "true" or "false". Use `@true` and `@false`
+to express them. (`true` and `false` are keys.)
 
 ```toml
 bool1 = @true
