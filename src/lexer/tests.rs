@@ -85,6 +85,24 @@ fn idents() {
 }
 
 #[test]
+fn bools() {
+    let code = "@true @false";
+    assert_eq!(
+        lexer(code),
+        Ok(vec![
+            PosToken {
+                pos: 0..5,
+                token: Token::Bool(true),
+            },
+            PosToken {
+                pos: 6..12,
+                token: Token::Bool(false),
+            }
+        ])
+    )
+}
+
+#[test]
 fn chars() {
     let code = "'a' '\\n' '\\'' '\\\\'";
     assert_eq!(
@@ -181,9 +199,9 @@ fn ints() {
 
 #[test]
 fn floats() {
-    let code = "1_2_3.0_2_3 23e-0_2 1.1e+2 2e2";
+    let code1 = "1_2_3.0_2_3 23e-0_2 1.1e+2 2e2 @inf";
     assert_eq!(
-        lexer(code),
+        lexer(code1),
         Ok(vec![
             PosToken {
                 pos: 0..11,
@@ -201,6 +219,18 @@ fn floats() {
                 pos: 27..30,
                 token: Token::Float(2e2f64),
             },
+            PosToken {
+                pos: 31..35,
+                token: Token::Float(f64::INFINITY),
+            },
         ])
     );
+    let code2 = "@nan";
+    assert!(matches!(
+        lexer(code2).unwrap()[..],
+        [PosToken {
+            pos: std::ops::Range { start: 0, end: 4 },
+            token: Token::Float(f),
+        }] if f.is_nan()
+    ));
 }

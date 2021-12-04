@@ -14,6 +14,7 @@ pub struct PosToken {
 pub enum Token {
     Symbol(Symbol),
     Ident(String),
+    Bool(bool),
     Char(char),
     Str(String),
     Int(i64),
@@ -52,7 +53,6 @@ pub enum Symbol {
     Dot,
     Colon,
     UnderLine,
-    At,
 }
 
 peg::parser! { grammar lexer() for str {
@@ -66,6 +66,7 @@ peg::parser! { grammar lexer() for str {
             / i:integer() { Token::Int(i) }
             / s:string() { Token::Str(s) }
             / c:character() { Token::Char(c) }
+            / b:boolean() { Token::Bool(b) }
             / i:ident() { Token::Ident(i) }
             / s:symbol() { Token::Symbol(s) }
           )
@@ -102,7 +103,6 @@ peg::parser! { grammar lexer() for str {
         / "." { Symbol::Dot }
         / ":" { Symbol::Colon }
         / "_" { Symbol::UnderLine }
-        / "@" { Symbol::At }
         / expected!("symbols")
 
     rule ident() -> String
@@ -122,6 +122,10 @@ peg::parser! { grammar lexer() for str {
           / c:escape("}") { Some(c) }
           / "\\" normal_newline() { None }
         )*) "}" { s.into_iter().flatten().collect() }
+
+    rule boolean() -> bool
+        = "@true" { true }
+        / "@false" { false }
 
     rule character() -> char
         = "'" c:(
@@ -197,6 +201,8 @@ peg::parser! { grammar lexer() for str {
                 Err("invalid float")
             } }) {? s.replace('_', "").parse().or(Err("too large or small"))
         }
+        / "@inf" { f64::INFINITY }
+        / "@nan" { f64::NAN }
     rule frac() -> ()
         = "." $(['0'..='9']++("_"*))
     rule exp() -> ()
