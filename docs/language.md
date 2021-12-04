@@ -385,7 +385,6 @@ types of keys:
 - [Raw Key](#raw-key)
 - [Local Key](#local-key)
 - [Root Key](#root-key)
-- [Master Key](#master-key)
 
 #### Bare Key
 Bare key is a basic way to express key, and a bare key starts with a 
@@ -477,16 +476,6 @@ bar = .table.value   # "table"
 
 .${Raw Root} = "Raw Root Key"
 ${.Not Root} = "Normal Raw Key"
-```
-
-#### Master Key
-Master key is a way to access master table (another root table), prefixed with
-a commercial at (`U+0040`). [Standard APIs](./api.md) will be stored into the
-master table, and the master table will not be [rendered](#terms).
-
-```toml
-true = @true
-inf = @inf
 ```
 
 ### Scope
