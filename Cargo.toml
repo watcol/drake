@@ -17,4 +17,6 @@ include = [
 
 [dependencies]
 peg = "0.7"
+
+[dev-dependencies]
 indoc = "1.0"
