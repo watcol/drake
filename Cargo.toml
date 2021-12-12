@@ -16,7 +16,7 @@ include = [
 ]
 
 [dependencies]
-peg = "0.7"
+pom = "3.2"
 
 [dev-dependencies]
 indoc = "1.0"
