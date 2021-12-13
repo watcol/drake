@@ -10,6 +10,11 @@ syntax and semantics.
 - A Walnut file should use the extension `.wal`.
 - The appropriate MIME type for Walnut files is `application/walnut`.
 
+### Supported File Types
+Walnut files can be transpiled to these file types:
+
+*Comming soon...*
+
 ## Statement
 Statement is a base unit of Walnut, categorized into these types:
 - [Value Binding](#value-binding)
@@ -284,7 +289,8 @@ float6 = -2E+4           # same as -20000.0
 float7 = 5_000.000_003   # same as 5000.000003
 ```
 
-Use `@inf` and `@nan` to express positive infinity and "Not a number."
+Use `@inf` and `@nan` to express positive infinity and "Not a number." See
+also [Built-in Key](#built-in-key).
 
 ```toml
 float8 = @inf    # Positive Infinity
@@ -294,7 +300,8 @@ float10 = @nan   # Not a number.
 
 #### Boolean
 Boolean is a value, either "true" or "false". Use `@true` and `@false`
-to express them. (`true` and `false` are keys.)
+to express them. (`true` and `false` are keys.) See also
+[Built-in Key](#built-in-key).
 
 ```toml
 bool1 = @true
@@ -392,6 +399,7 @@ types of keys:
 - [Raw Key](#raw-key)
 - [Local Key](#local-key)
 - [Root Key](#root-key)
+- [Built-in Key](#built-in-key)
 
 #### Bare Key
 Bare key is a basic way to express key, and a bare key starts with a 
@@ -484,6 +492,24 @@ bar = .table.value   # "table"
 .${Raw Root} = "Raw Root Key"
 ${.Not Root} = "Normal Raw Key"
 ```
+
+#### Built-in Key
+Built-in key is a key starts with a commercial at (`@`, `U+0040`), integrated
+with the transpiler.
+
+- `@output` ... A [string](#string) to specify destination path to output a
+                transpiled source. Write only.
+- `@type`   ... A [string](#string) to specify file type to transpile.
+                Supported file types are described
+                [here](#supported-file-types). Write only. (Normally infered
+                from `@output` and not needed.)
+- `@nan`    ... A [float](#float) expresses quiet "Not a Number". Read only.
+- `@inf`    ... A [float](#float) expresses positive infinity. Read only.
+- `@true`   ... A [boolean](#boolean) expresses true. Read only.
+- `@false`  ... A [boolean](#boolean) expresses false. Read only.
+
+Note that built-in keys are file-specific, and independent from the root
+scope.
 
 ### Scope
 Scope is a special table, used as the base point when refering keys. There are
