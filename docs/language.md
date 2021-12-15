@@ -241,19 +241,6 @@ oct = 0o644
 bin = 0b01010110
 ```
 
-An integer prefixed with `+` will be treated as positive number, one prefixed
-with `-` will be treated as negative number. If an integer does not have
-neither `+` or `-`, it will be a positive number. `+0`, and `-0` are identical
-to `0`. Hexadecimal, octal and binary integers cannot have `+` or `-` signs.
-
-```toml
-pos1 = 42
-pos1 = +1
-zero1 = 0
-zero2 = -0
-neg = -5
-```
-
 Underscores between digits are allowed for readability.
 
 ```toml
@@ -262,7 +249,7 @@ int1 = 1_2_3_4_5
 int2 = 0b1101_0110
 ```
 
-Accepted range is from `-2^63` to `2^63-1` (64bit signed integer).
+Accepted range is from `-2^63` to `2^64-1` (64bit signed/unsigned integer).
 
 #### Float
 Float is a IEEE 754 binary64 value.
