@@ -1,8 +1,19 @@
 use pom::parser::*;
 
-pub fn digits<'a>() -> Parser<'a, char, &'a [char]> {
-    ((one_of("123456789") - one_of("0123456789").repeat(0..)) | (sym('0') - !one_of("0123456789")))
-        .collect()
+pub fn digits<'a>(radix: u32) -> Parser<'a, char, String> {
+    let underscore = || sym('_').repeat(0..);
+    let digit = || is_a(move |c: char| c.is_digit(radix));
+    (digit() + (underscore() * digit()).repeat(0..))
+        .map(|(first, rest)| std::iter::once(first).chain(rest.into_iter()).collect())
+}
+
+pub fn digits_no_leading_zero<'a>(radix: u32) -> Parser<'a, char, String> {
+    let underscore = || sym('_').repeat(0..);
+    let digit = || is_a(move |c: char| c.is_digit(radix));
+    let non_zero = is_a(move |c: char| c.is_digit(radix) && c != '0');
+    (non_zero + (underscore() * digit()).repeat(0..))
+        .map(|(first, rest)| std::iter::once(first).chain(rest.into_iter()).collect())
+        | (sym('0') + !digit()).map(|_| String::from("0"))
 }
 
 #[cfg(test)]

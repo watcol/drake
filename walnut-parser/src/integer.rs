@@ -1,29 +1,15 @@
-use super::utils::digits;
+use super::utils::{digits, digits_no_leading_zero};
 use pom::parser::*;
 
 #[allow(dead_code)]
 pub fn integer<'a>() -> Parser<'a, char, u64> {
-    let dec = digits().collect().convert(|s| {
-        s.iter()
-            .collect::<String>()
-            .parse()
-            .map_err(|_| "Integer too big.")
-    });
+    let dec = digits_no_leading_zero(10).convert(|s| s.parse().map_err(|_| "Integer too big."));
     let hex = tag("0x")
-        * one_of("0123456789abcdefABCDEF").repeat(1..).convert(|h| {
-            u64::from_str_radix(&h.into_iter().collect::<String>(), 16)
-                .map_err(|_| "Integer too big.")
-        });
+        * digits(16).convert(|s| u64::from_str_radix(&s, 16).map_err(|_| "Integer too big."));
     let oct = tag("0o")
-        * one_of("01234567").repeat(1..).convert(|o| {
-            u64::from_str_radix(&o.into_iter().collect::<String>(), 8)
-                .map_err(|_| "Integer too big.")
-        });
+        * digits(8).convert(|s| u64::from_str_radix(&s, 8).map_err(|_| "Integer too big."));
     let bin = tag("0b")
-        * one_of("01").repeat(1..).convert(|b| {
-            u64::from_str_radix(&b.into_iter().collect::<String>(), 2)
-                .map_err(|_| "Integer too big.")
-        });
+        * digits(2).convert(|s| u64::from_str_radix(&s, 2).map_err(|_| "Integer too big."));
 
     hex | oct | bin | dec
 }
@@ -39,6 +25,8 @@ mod test {
         should_fail_parser!(integer, "0042");
         assert_parser!(integer, "5", 5);
         assert_parser!(integer, "1234567890", 1234567890);
+        assert_parser!(integer, "1_2__3_4", 1234);
+        should_fail_parser!(integer, "_1");
 
         // Maximum number.
         assert_parser!(integer, "18446744073709551615", u64::MAX);
