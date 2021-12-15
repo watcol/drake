@@ -1,9 +1,5 @@
 use pom::parser::*;
 
-pub fn sign<'a>() -> Parser<'a, char, Option<char>> {
-    (sym('+') | sym('-')).opt()
-}
-
 pub fn digits<'a>() -> Parser<'a, char, &'a [char]> {
     ((one_of("123456789") - one_of("0123456789").repeat(0..)) | (sym('0') - !one_of("0123456789")))
         .collect()
