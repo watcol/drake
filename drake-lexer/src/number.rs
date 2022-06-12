@@ -9,13 +9,6 @@ where
     I: Input<Ok = char> + 'a,
 {
     choice((
-        fold_digits(digits(10), 0, 10, false).try_map(|(res, _, overflowed)| {
-            if overflowed {
-                Err("not too large number")
-            } else {
-                Ok(res)
-            }
-        }),
         tag("0x").prefix(
             fold_digits(digits_trailing_zeros(16), 0, 16, false).try_map(|(res, _, overflowed)| {
                 if overflowed {
@@ -43,6 +36,13 @@ where
                 }
             },
         )),
+        fold_digits(digits(10), 0, 10, false).try_map(|(res, _, overflowed)| {
+            if overflowed {
+                Err("not too large number")
+            } else {
+                Ok(res)
+            }
+        }),
     ))
 }
 
@@ -50,11 +50,14 @@ fn digits<'a, I>(radix: u8) -> impl IterableParser<I, Item = char> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
-    non_zero_digit(radix).once().chain(
-        choice((digit(radix).map(Some), token('_').map(|_| None)))
-            .repeat(..)
-            .flatten(),
-    )
+    choice_iterable((
+        non_zero_digit(radix).once().chain(
+            choice((digit(radix).map(Some), token('_').map(|_| None)))
+                .repeat(..)
+                .flatten(),
+        ),
+        token('0').once(),
+    ))
 }
 
 fn digits_trailing_zeros<'a, I>(radix: u8) -> impl IterableParser<I, Item = char> + 'a
