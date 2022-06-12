@@ -1,4 +1,5 @@
 pub mod number;
+pub mod string;
 
 use somen::prelude::*;
 
