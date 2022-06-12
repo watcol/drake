@@ -3,6 +3,18 @@
 version = 3
 
 [[package]]
+name = "autocfg"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
+
+[[package]]
+name = "compute-float"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fd8d85e9ff41055e94c113806ab66acb656f1a855277caccaed829a0ccebd79"
+
+[[package]]
 name = "drake"
 version = "0.0.1"
 dependencies = [
@@ -13,12 +25,37 @@ dependencies = [
 [[package]]
 name = "drake-lexer"
 version = "0.0.1"
+dependencies = [
+ "somen",
+ "somen-language",
+]
+
+[[package]]
+name = "futures-core"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c09fd04b7e4073ac7156a9539b57a484a8ea920f79c7c675d05d289ab6110d3"
+
+[[package]]
+name = "futures-io"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc4045962a5a5e935ee2fdedaa4e08284547402885ab326734432bed5d12966b"
 
 [[package]]
 name = "indoc"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05a0bd019339e5d968b37855180087b7b9d512c5046fbd244cf8c95687927d6e"
+
+[[package]]
+name = "num-traits"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+dependencies = [
+ "autocfg",
+]
 
 [[package]]
 name = "peg"
@@ -48,6 +85,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9b0efd3ba03c3a409d44d60425f279ec442bcf0b9e63ff4e410da31c8b0f69f"
 
 [[package]]
+name = "pin-project-lite"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0a7ae3ac2f1173085d398531c705756c94a4c56843785df85a60c1a0afac116"
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -63,6 +106,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1feb54ed693b93a84e14094943b84b7c4eae204c512b7ccb95ab0c66d278ad1"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "somen"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "262d336892d831f5e16b7c734b11ac5ac45d6e89ae9f88c479a0139c519ddeba"
+dependencies = [
+ "futures-core",
+ "futures-io",
+ "pin-project-lite",
+]
+
+[[package]]
+name = "somen-language"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37559f145d193436e86f43ee4c8c36df846aa254fb32420ee7c34787ff113363"
+dependencies = [
+ "compute-float",
+ "num-traits",
+ "somen",
 ]
 
 [[package]]
