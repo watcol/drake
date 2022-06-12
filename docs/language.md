@@ -103,17 +103,17 @@ table = { foo = "foo" }
 [table] # Error!
 ```
 
-Instead of an empty table, an expression after the closing bracket can be used
-as an initial tables.
+Instead of an empty table, an initial table can be used by writing a
+[value binding](#value-binding) inside the [square brackets](#terms).
 
 ```toml
 # `table` is `{ foo = "baz", bar = "baz", baz = 1 }`.
-[table] { foo = "foo", bar = "bar" }
+[table = { foo = "foo", bar = "bar" }]
 bar = "baz"   # Overwriting a value.
 baz = 1       # Appending a value.
 
  # It is useful when overwriting an imported table.
-[dependencies] import("dependencies.drake")
+[dependencies = import("dependencies.drake")]
 ```
 
 #### Array of Tables
@@ -144,7 +144,7 @@ In the first header, an initial array can be used instead of an empty array.
 
 ```toml
 # `array` is `[ { foo = "foo" }, "str", { bar = "bar" }, { baz = "baz" } ]`.
-[[array]] [{ foo = "foo" }, "str"]
+[[ array = [{ foo = "foo" }, "str"] ]]
 bar = "bar"
 
 [[array]]
@@ -371,11 +371,11 @@ or "hash map". There are two types to express tables:
 - [Inline Table](#inline-table)
 
 ```toml
+inline_table = {item1 = "item1", item2 = "item2"}
+
 [table]
 item1 = "item1"
 item2 = "item2"
-
-.inline_table = {item1 = "item1", item2 = "item2"}
 ```
 
 ### Key
