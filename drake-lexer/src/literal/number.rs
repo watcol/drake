@@ -3,6 +3,7 @@ mod integer;
 #[cfg(test)]
 mod tests;
 
+pub use float::float;
 pub use integer::integer;
 
 use somen::prelude::*;

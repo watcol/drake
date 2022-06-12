@@ -1,2 +1,2 @@
-mod number;
+pub mod literal;
 mod utils;
