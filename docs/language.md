@@ -420,7 +420,7 @@ ${\\{All\u{00A0}characters\ncan be used.\}} = true
 Local key is a [bare](#bare-key) or [raw](#raw-key) key prefixed with a low
 line (`U+005F`). Local keys can't be accessed from external scope, and won't
 be [rendered](#terms) by the compiler. [Whitespaces](#terms) after the `_`
-prefix are ignored.
+prefix are **not** allowed. (Unlike [root keys](#root-key))
 
 This is useful when you want to create commonly used in the file, but is not
 needed to be visible from out of a scope.
@@ -463,9 +463,10 @@ subsub3 = _sub_sub_local         # Allowed
 ```
 
 #### Root Key
-Root key is a [bare](#bare-key), [raw](#raw-key), key prefixed with a period,
-and access value from the [root scope](#root-scope) instead of current scope.
-[Whitespaces](#terms) after `.` prefix are ignored.
+Root key is a [bare](#bare-key), [raw](#raw-key), or [local](#local-key) key
+prefixed by a period, and access value from the [root scope](#root-scope)
+instead of current scope. [Whitespaces](#terms) after `.` prefix are **allowed**.
+(Unlike [local keys](#local-key))
 
 ```toml
 value = "root"
@@ -474,7 +475,7 @@ value = "root"
 value = "table"
 foo = value          # "table"
 bar = .value         # "root"
-bar = .table.value   # "table"
+bar = . table.value   # "table"
 
 .${Raw Root} = "Raw Root Key"
 ${.Not Root} = "Normal Raw Key"
