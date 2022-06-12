@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use somen::prelude::*;
 use somen_language::numeric::{digit, integer::fold_digits, non_zero_digit};
 
