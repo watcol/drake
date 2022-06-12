@@ -66,7 +66,7 @@ fn newline() {
     block_on(async {
         let parser = &mut super::newline().complete();
         assert_parser(parser, "\n", '\n').await;
-        assert_parser(parser, "\r", '\r').await;
+        assert_parser(parser, "\r", '\n').await;
         assert_parser(parser, "\r\n", '\n').await;
         assert_parser_fail(parser, "\n\r").await;
     })
