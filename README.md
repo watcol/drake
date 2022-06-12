@@ -1,5 +1,5 @@
-# Walnut
-Walnut is a simple, programmable, and human-readable, configuration
+# Drake
+Drake is a simple, programmable, and human-readable, configuration
 language.
 
 ## Features
@@ -17,4 +17,4 @@ The language references are available [here](./docs/language.md)
 *Comming soon...*
 
 ## License
-Walnut is licensed under the MIT license. See [LICENSE](./LICENSE).
+Drake is licensed under the MIT license. See [LICENSE](./LICENSE).

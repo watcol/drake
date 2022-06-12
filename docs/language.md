@@ -1,22 +1,22 @@
-# Walnut v0.0.1-pre
+# Drake v0.0.1-pre
 
-This book is the reference for the Walnut configuration language, describes
+This book is the reference for the Drake Configuration Language, describes
 syntax and semantics.
 
 ## File Format
-- A Walnut file must be encoded in UTF-8.
-- A Walnut file is described as an sequence of [statements](#statement), and
+- A file must be encoded in UTF-8.
+- A file is described as an sequence of [statements](#statement), and
   expresses a [table](#table) by [rendering](#terms).
-- A Walnut file should use the extension `.wal`.
-- The appropriate MIME type for Walnut files is `application/walnut`.
+- A file should use the extension `.drake`.
+- The appropriate MIME type for drake files is `application/drake`.
 
 ### Supported File Types
-Walnut files can be transpiled to these file types:
+Drake files can be transpiled to these file types:
 
 *Comming soon...*
 
 ## Statement
-Statement is a base unit of Walnut, categorized into these types:
+Statement is a base unit of Drake, categorized into these types:
 - [Value Binding](#value-binding)
 - [Table Header](#table-header)
 - [Function Definition](#function-definition)
@@ -113,7 +113,7 @@ bar = "baz"   # Overwriting a value.
 baz = 1       # Appending a value.
 
  # It is useful when overwriting an imported table.
-[dependencies] import("dependencies.wal")
+[dependencies] import("dependencies.drake")
 ```
 
 #### Array of Tables
@@ -541,8 +541,7 @@ key = "foo"
   carriage returns or comments.
 - "Parenthesis" means left and right of round brackets (`()`), curly brackets
   (`{}`), or square brackets (`[]`).
-- "Render" means processing and converting the walnut file to other data
-  notations.
+- "Render" means processing and converting the file to other data notations.
 
 ## ABNF Grammar
 *Comming soon...*
