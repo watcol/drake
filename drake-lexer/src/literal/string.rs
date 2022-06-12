@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use somen::error::Expects;
 use somen::prelude::*;
 
