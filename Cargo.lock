@@ -11,6 +11,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "drake-lexer"
+version = "0.0.1"
+
+[[package]]
 name = "indoc"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
