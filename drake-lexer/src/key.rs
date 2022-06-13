@@ -21,13 +21,14 @@ where
         local_key().map(Key::Local),
         builtin_key().map(Key::Builtin),
     ))
+    .expect("key")
 }
 
 pub fn normal_key<'a, I>() -> impl Parser<I, Output = String> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
-    choice((bare_key(), raw_key())).expect("key")
+    choice((bare_key(), raw_key())).expect("normal key")
 }
 
 pub fn local_key<'a, I>() -> impl Parser<I, Output = String> + 'a

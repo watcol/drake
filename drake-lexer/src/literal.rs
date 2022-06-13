@@ -24,4 +24,5 @@ where
         string::character().map(Literal::Character),
         string::string().map(Literal::String),
     ))
+    .expect("literal")
 }

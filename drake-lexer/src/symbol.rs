@@ -27,4 +27,5 @@ where
         token('{').map(|_| Symbol::OpenBrace),
         token('}').map(|_| Symbol::CloseBrace),
     ))
+    .expect("symbol")
 }
