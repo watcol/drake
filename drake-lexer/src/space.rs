@@ -3,42 +3,32 @@
 mod tests;
 
 use alloc::string::String;
-use core::ops::Range;
 use somen::error::Expects;
 use somen::prelude::*;
 
-/// A parser for whitespaces
+/// A parser for sequences of whitespaces
 pub fn whitespaces<'a, I>() -> impl Parser<I, Output = ()> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
     one_of(" \t")
         .expect(Expects::from_iter(["space", "tab"]))
-        .repeat(..)
+        .repeat(1..)
         .discard()
         .expect("whitespaces")
 }
 
-/// An iterable parser for continuous lines with comments
-pub fn continuous<'a, I>() -> impl IterableParser<I, Item = (String, Range<usize>)> + 'a
-where
-    I: Input<Ok = char, Locator = usize> + 'a,
-{
-    (token('\\'), whitespaces()).prefix(
-        choice((newline().map(|_| None), comment().with_position().map(Some)))
-            .repeat(1..)
-            .flatten(),
-    )
-}
-
 /// A parser for newlines
-pub fn newline<'a, I>() -> impl Parser<I, Output = ()> + 'a
+pub fn newline<'a, I>() -> impl Parser<I, Output = char> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
-    one_of("\n\r")
-        .prefix(one_of(" \t\n\r").repeat(..).discard())
-        .expect("newline")
+    choice((
+        token('\n'),
+        tag("\r\n").map(|_| '\n'),
+        token('\r').map(|_| '\n'),
+    ))
+    .expect("newline")
 }
 
 /// A parser for comments

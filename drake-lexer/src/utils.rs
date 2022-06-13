@@ -10,6 +10,8 @@ pub use test_utils::{assert_parser, assert_parser_fail};
 use somen::prelude::*;
 use somen_language::numeric::integer::{integer_fixed, integer_trailing_zeros};
 
+use crate::space::newline;
+
 pub fn escaped_char<'a, I>(end: char) -> impl Parser<I, Output = char> + 'a
 where
     I: Input<Ok = char> + 'a,
@@ -66,16 +68,5 @@ where
                 .between(tag("u{"), token('}')),
             newline().map(|_| None),
         ))),
-    ))
-}
-
-pub fn newline<'a, I>() -> impl Parser<I, Output = char> + 'a
-where
-    I: Input<Ok = char> + 'a,
-{
-    choice((
-        token('\n'),
-        tag("\r\n").map(|_| '\n'),
-        token('\r').map(|_| '\n'),
     ))
 }

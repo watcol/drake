@@ -14,6 +14,7 @@ where
         token('=').map(|_| Symbol::Assign),
         token(',').map(|_| Symbol::Comma),
         token('.').map(|_| Symbol::Dot),
+        token('\\').map(|_| Symbol::BackSlash),
         token('[').map(|_| Symbol::OpenBracket),
         token(']').map(|_| Symbol::CloseBracket),
         token('{').map(|_| Symbol::OpenBrace),

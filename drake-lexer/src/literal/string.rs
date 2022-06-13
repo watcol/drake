@@ -6,7 +6,8 @@ use alloc::string::String;
 use somen::error::Expects;
 use somen::prelude::*;
 
-use crate::utils::{escaped_char, escaped_char_continuous, newline};
+use crate::space::newline;
+use crate::utils::{escaped_char, escaped_char_continuous};
 
 /// A parser for characters
 pub fn character<'a, I>() -> impl Parser<I, Output = char> + 'a
