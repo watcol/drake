@@ -15,4 +15,9 @@ include = [
   "src/**/*.rs",
 ]
 
+[workspace]
+members = [
+  "drake-lexer",
+]
+
 [dependencies]
