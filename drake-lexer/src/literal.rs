@@ -1,3 +1,4 @@
+//! Literal values
 #[cfg(test)]
 mod tests;
 
@@ -6,6 +7,7 @@ pub mod string;
 
 use somen::prelude::*;
 
+/// A literal
 #[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     Integer(u64),
@@ -14,6 +16,7 @@ pub enum Literal {
     String(String),
 }
 
+/// A parser for literals
 pub fn literal<'a, I>() -> impl Parser<I, Output = Literal> + 'a
 where
     I: Input<Ok = char> + 'a,

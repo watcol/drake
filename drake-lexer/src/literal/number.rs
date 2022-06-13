@@ -1,3 +1,4 @@
+//! Numeric literals
 mod float;
 mod integer;
 #[cfg(test)]

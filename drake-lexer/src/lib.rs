@@ -15,6 +15,7 @@ use literal::{literal, Literal};
 use space::{comment, continuous, newline, whitespaces};
 use symbol::{symbol, Symbol};
 
+/// Kinds of tokens
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenKind {
     Newline,
@@ -24,6 +25,7 @@ pub enum TokenKind {
     Literal(Literal),
 }
 
+/// A token value and a position
 #[derive(Clone, Debug)]
 pub struct Token {
     pub kind: TokenKind,
@@ -51,6 +53,7 @@ impl PartialEq for Token {
     }
 }
 
+/// A parser for tokens
 pub fn token<'a, I>() -> impl Parser<I, Output = Token> + 'a
 where
     I: Input<Ok = char, Locator = usize> + 'a,
@@ -67,6 +70,7 @@ where
     .expect("token")
 }
 
+/// An iterable parser for sequences of tokens.
 pub fn tokens<'a, I>() -> impl IterableParser<I, Item = Token> + 'a
 where
     I: Input<Ok = char, Locator = usize> + 'a,

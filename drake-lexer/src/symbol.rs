@@ -1,8 +1,10 @@
+//! Symbol tokens
 #[cfg(test)]
 mod tests;
 
 use somen::prelude::*;
 
+/// Kinds of symbols
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Symbol {
     Assign,
@@ -14,6 +16,7 @@ pub enum Symbol {
     CloseBrace,
 }
 
+/// A parser for symbols
 pub fn symbol<'a, I>() -> impl Parser<I, Output = Symbol> + 'a
 where
     I: Input<Ok = char> + 'a,

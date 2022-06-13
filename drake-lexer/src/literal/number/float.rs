@@ -6,6 +6,7 @@ use somen_language::numeric::{float::compute_float, integer::fold_digits, signed
 
 use super::{digits, digits_trailing_zeros};
 
+/// A parser for flaoting point decimals
 pub fn float<'a, I>() -> impl Parser<I, Output = f64> + 'a
 where
     I: Input<Ok = char> + 'a,

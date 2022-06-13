@@ -5,6 +5,7 @@ use super::{digits, digits_trailing_zeros};
 use somen::prelude::*;
 use somen_language::numeric::integer::fold_digits;
 
+/// A parser for integers
 pub fn integer<'a, I>() -> impl Parser<I, Output = u64> + 'a
 where
     I: Input<Ok = char> + 'a,
