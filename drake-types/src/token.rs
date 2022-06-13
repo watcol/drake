@@ -1,31 +1,9 @@
 //! Token types
 use alloc::string::String;
-use core::ops::Range;
-
-/// A token value and a position
-#[derive(Clone, Debug)]
-pub struct Token {
-    pub kind: TokenValue,
-    pub pos: Range<usize>,
-}
-
-impl PartialEq for Token {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.kind.eq(&other.kind)
-    }
-}
-
-impl PartialEq<TokenValue> for Token {
-    #[inline]
-    fn eq(&self, other: &TokenValue) -> bool {
-        self.kind.eq(other)
-    }
-}
 
 /// Values of tokens
 #[derive(Clone, Debug, PartialEq)]
-pub enum TokenValue {
+pub enum Token {
     /// A line break
     Newline,
     /// A sequence of whitespaces
@@ -38,13 +16,6 @@ pub enum TokenValue {
     Key(Key),
     /// A literal
     Literal(Literal),
-}
-
-impl PartialEq<Token> for TokenValue {
-    #[inline]
-    fn eq(&self, other: &Token) -> bool {
-        self.eq(&other.kind)
-    }
 }
 
 /// Kinds of symbols

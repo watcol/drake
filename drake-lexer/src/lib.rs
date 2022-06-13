@@ -10,7 +10,7 @@ pub mod space;
 pub mod symbol;
 mod utils;
 
-use drake_types::token::TokenValue;
+use drake_types::token::Token;
 use somen::prelude::*;
 
 use key::key;
@@ -19,17 +19,17 @@ use space::{comment, newline, whitespaces};
 use symbol::symbol;
 
 /// A parser for tokens
-pub fn token<'a, I>() -> impl Parser<I, Output = TokenValue> + 'a
+pub fn token<'a, I>() -> impl Parser<I, Output = Token> + 'a
 where
-    I: Input<Ok = char, Locator = usize> + 'a,
+    I: Input<Ok = char> + 'a,
 {
     choice((
-        newline().map(|_| TokenValue::Newline),
-        whitespaces().map(|_| TokenValue::Whitespaces),
-        comment().map(TokenValue::Comment),
-        symbol().map(TokenValue::Symbol),
-        key().map(TokenValue::Key),
-        literal().map(TokenValue::Literal),
+        newline().map(|_| Token::Newline),
+        whitespaces().map(|_| Token::Whitespaces),
+        comment().map(Token::Comment),
+        symbol().map(Token::Symbol),
+        key().map(Token::Key),
+        literal().map(Token::Literal),
     ))
     .expect("token")
 }
