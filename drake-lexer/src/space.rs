@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests;
 
+use core::ops::Range;
 use somen::error::Expects;
 use somen::prelude::*;
 
@@ -15,12 +16,12 @@ where
         .expect("whitespaces")
 }
 
-pub fn continuous<'a, I>() -> impl IterableParser<I, Item = String> + 'a
+pub fn continuous<'a, I>() -> impl IterableParser<I, Item = (String, Range<usize>)> + 'a
 where
-    I: Input<Ok = char> + 'a,
+    I: Input<Ok = char, Locator = usize> + 'a,
 {
     (token('\\'), whitespaces()).prefix(
-        choice((newline().map(|_| None), comment().map(Some)))
+        choice((newline().map(|_| None), comment().with_position().map(Some)))
             .repeat(1..)
             .flatten(),
     )

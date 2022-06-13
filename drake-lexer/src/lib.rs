@@ -7,6 +7,7 @@ pub mod space;
 pub mod symbol;
 mod utils;
 
+use core::ops::Range;
 use somen::prelude::*;
 
 use key::{key, Key};
@@ -15,7 +16,7 @@ use space::{comment, continuous, newline, whitespaces};
 use symbol::{symbol, Symbol};
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Token {
+pub enum TokenKind {
     Newline,
     Comment(String),
     Symbol(Symbol),
@@ -23,29 +24,40 @@ pub enum Token {
     Literal(Literal),
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub pos: Range<usize>,
+}
+
 pub fn token<'a, I>() -> impl Parser<I, Output = Token> + 'a
 where
-    I: Input<Ok = char> + 'a,
+    I: Input<Ok = char, Locator = usize> + 'a,
 {
     choice((
-        newline().map(|_| Token::Newline),
-        comment().map(Token::Comment),
-        symbol().map(Token::Symbol),
-        key().map(Token::Key),
-        literal().map(Token::Literal),
+        newline().map(|_| TokenKind::Newline),
+        comment().map(TokenKind::Comment),
+        symbol().map(TokenKind::Symbol),
+        key().map(TokenKind::Key),
+        literal().map(TokenKind::Literal),
     ))
+    .with_position()
+    .map(|(kind, pos)| Token { kind, pos })
     .expect("token")
 }
 
 pub fn tokens<'a, I>() -> impl IterableParser<I, Item = Token> + 'a
 where
-    I: Input<Ok = char> + 'a,
+    I: Input<Ok = char, Locator = usize> + 'a,
 {
     whitespaces().prefix(
         choice_iterable((
             token().skip(whitespaces()).once(),
             continuous()
-                .map(Token::Comment)
+                .map(|(c, pos)| Token {
+                    kind: TokenKind::Comment(c),
+                    pos,
+                })
                 .chain(token().skip(whitespaces()).once()),
         ))
         .flat_repeat(..),

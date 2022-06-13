@@ -19,7 +19,7 @@ fn whitespaces() {
 #[test]
 fn continuous() {
     block_on(async {
-        let parser = &mut super::continuous().collect().complete();
+        let parser = &mut super::continuous().map(|(s, _)| s).collect().complete();
         assert_parser(parser, "\\\n", vec![]).await;
         assert_parser(parser, "\\ # Comment\n", vec![String::from(" Comment")]).await;
         assert_parser(
