@@ -28,6 +28,8 @@ impl PartialEq<TokenValue> for Token {
 pub enum TokenValue {
     /// A line break
     Newline,
+    /// A sequence of whitespaces
+    Whitespaces,
     /// A comment
     Comment(String),
     /// A symbol
@@ -54,6 +56,8 @@ pub enum Symbol {
     Comma,
     /// A dot (`.`, `U+002E`)
     Dot,
+    /// A backslash (`\`, `U+005C`)
+    BackSlash,
     /// An opening side of brackets (`[`, `U+005B`)
     OpenBracket,
     /// A closing side of brackets (`]`, `U+005D`)
