@@ -8,6 +8,7 @@ use crate::utils::assert_parser;
 fn float() {
     block_on(async {
         let parser = &mut super::float().complete();
+        assert_parser(parser, "0.0", 0.0).await;
         assert_parser(parser, "3.14", 3.14).await;
         assert_parser(parser, "0.001", 0.001).await;
         assert_parser(parser, "3e2", 300.0).await;

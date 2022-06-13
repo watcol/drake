@@ -19,6 +19,16 @@ pub fn string<'a, I>() -> impl Parser<I, Output = String> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
+    choice((
+        token('"').times(3).discard().fail().prefix(normal_string()),
+        raw_string(),
+    ))
+}
+
+pub fn normal_string<'a, I>() -> impl Parser<I, Output = String> + 'a
+where
+    I: Input<Ok = char> + 'a,
+{
     escaped_char_continuous('"')
         .expect(Expects::from_iter(["character", "continuous line"]))
         .repeat(..)

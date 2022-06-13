@@ -21,28 +21,24 @@ where
         }
     });
 
-    let exponent = one_of("eE")
-        .prefix(signed(
-            |neg| fold_digits(digits_trailing_zeros(10), 0i32, 10, neg),
-            true,
-        ))
-        .or(value((0, 0, false)));
+    let exponent = one_of("eE").prefix(signed(
+        |neg| fold_digits(digits_trailing_zeros(10), 0i32, 10, neg),
+        true,
+    ));
 
-    (mantissa, exponent).map(
-        |((mantissa, count, man_overflowed), (exp, _, exp_overflowed))| {
-            let (man, exp10) = (
-                if man_overflowed { u64::MAX } else { mantissa },
-                if exp_overflowed {
-                    if exp < 0 {
-                        i32::MIN
-                    } else {
-                        i32::MAX
-                    }
-                } else {
-                    exp.saturating_sub(count as i32)
-                },
-            );
-            compute_float(false, man, exp10).unwrap_or_else(|| man as f64 * 10f64.powi(exp10))
-        },
-    )
+    (mantissa, exponent.opt())
+        .try_map(|((mantissa, count, man_overflowed), opt)| {
+            let man = if man_overflowed { u64::MAX } else { mantissa };
+            let exp10 = match opt {
+                Some((exp, _, true)) if exp < 0 => i32::MIN,
+                Some((_, _, true)) => i32::MAX,
+                Some((exp, _, false)) => exp.saturating_sub(count as i32),
+                None if count == 0 => return Err(""),
+                None => -(count as i32),
+            };
+
+            Ok(compute_float(false, man, exp10).unwrap_or_else(|| man as f64 * 10f64.powi(exp10)))
+        })
+        .rewindable()
+        .expect("float")
 }
