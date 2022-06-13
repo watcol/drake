@@ -17,6 +17,7 @@ include = [
 
 [workspace]
 members = [
+  "drake-types",
   "drake-lexer",
 ]
 
