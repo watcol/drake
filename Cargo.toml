@@ -19,6 +19,7 @@ include = [
 members = [
   "drake-types",
   "drake-lexer",
+  "drake-parser",
 ]
 
 [dependencies]

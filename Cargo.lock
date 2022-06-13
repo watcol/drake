@@ -29,6 +29,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "drake-parser"
+version = "0.0.1"
+dependencies = [
+ "drake-types",
+ "futures-executor",
+ "somen",
+]
+
+[[package]]
 name = "drake-types"
 version = "0.0.1"
 

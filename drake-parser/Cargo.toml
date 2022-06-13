@@ -1,0 +1,11 @@
+[package]
+name = "drake-parser"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+somen = "0.3"
+drake-types = { path = "../drake-types/" }
+
+[dev-dependencies]
+futures-executor = "0.3"
