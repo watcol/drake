@@ -24,10 +24,31 @@ pub enum TokenKind {
     Literal(Literal),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub kind: TokenKind,
     pub pos: Range<usize>,
+}
+
+impl PartialEq<Token> for TokenKind {
+    #[inline]
+    fn eq(&self, other: &Token) -> bool {
+        self.eq(&other.kind)
+    }
+}
+
+impl PartialEq<TokenKind> for Token {
+    #[inline]
+    fn eq(&self, other: &TokenKind) -> bool {
+        self.kind.eq(other)
+    }
+}
+
+impl PartialEq for Token {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.kind.eq(&other.kind)
+    }
 }
 
 pub fn token<'a, I>() -> impl Parser<I, Output = Token> + 'a
