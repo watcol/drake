@@ -2,6 +2,7 @@
 #[cfg(test)]
 mod tests;
 
+use alloc::string::String;
 use somen::prelude::*;
 
 use crate::utils::escaped_char;

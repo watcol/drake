@@ -5,6 +5,7 @@ mod tests;
 pub mod number;
 pub mod string;
 
+use alloc::string::String;
 use somen::prelude::*;
 
 /// A literal

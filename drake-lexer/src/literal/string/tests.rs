@@ -1,4 +1,5 @@
 use futures_executor::block_on;
+use alloc::string::String;
 use somen::prelude::*;
 
 use crate::utils::assert_parser;

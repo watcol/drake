@@ -1,3 +1,4 @@
+use alloc::string::String;
 use futures_executor::block_on;
 use somen::prelude::*;
 

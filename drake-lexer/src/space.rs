@@ -2,6 +2,7 @@
 #[cfg(test)]
 mod tests;
 
+use alloc::string::String;
 use core::ops::Range;
 use somen::error::Expects;
 use somen::prelude::*;

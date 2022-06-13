@@ -1,8 +1,8 @@
 use core::fmt::Debug;
+use core::str::Chars;
 use somen::prelude::*;
 use somen::stream::rewind::BufferedRewinder;
 use somen::stream::{InfallibleStream, IteratorStream};
-use std::str::Chars;
 
 pub async fn assert_parser<T: PartialEq + Debug>(
     parser: &mut impl Parser<

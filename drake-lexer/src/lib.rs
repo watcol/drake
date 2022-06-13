@@ -1,3 +1,6 @@
+#![no_std]
+extern crate alloc;
+
 #[cfg(test)]
 mod tests;
 
@@ -7,6 +10,7 @@ pub mod space;
 pub mod symbol;
 mod utils;
 
+use alloc::string::String;
 use core::ops::Range;
 use somen::prelude::*;
 

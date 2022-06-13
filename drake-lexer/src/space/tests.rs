@@ -1,3 +1,5 @@
+use alloc::string::String;
+use alloc::vec;
 use futures_executor::block_on;
 use somen::prelude::*;
 
