@@ -3,7 +3,7 @@
 mod tests;
 
 use alloc::string::String;
-use drake_types::token::Key;
+use drake_types::token::{Identifier, IdentifierKind, Key, KeyKind};
 use somen::prelude::*;
 
 use crate::utils::escaped_char;
@@ -13,36 +13,35 @@ pub fn key<'a, I>() -> impl Parser<I, Output = Key> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
-    choice((
-        normal_key().map(Key::Normal),
-        local_key().map(Key::Local),
-        builtin_key().map(Key::Builtin),
-    ))
-    .expect("key")
+    (
+        one_of("_@").opt().map(|mark| match mark {
+            Some('_') => KeyKind::Local,
+            Some('@') => KeyKind::Builtin,
+            None => KeyKind::Normal,
+            _ => unreachable!(),
+        }),
+        identifier(),
+    )
+        .map(|(kind, ident)| Key { kind, ident })
+        .expect("key")
 }
 
 /// A parser for normal (bare and raw) keys
-pub fn normal_key<'a, I>() -> impl Parser<I, Output = String> + 'a
+pub fn identifier<'a, I>() -> impl Parser<I, Output = Identifier> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
-    choice((bare_key(), raw_key())).expect("normal key")
-}
-
-/// A parser for local keys
-pub fn local_key<'a, I>() -> impl Parser<I, Output = String> + 'a
-where
-    I: Input<Ok = char> + 'a,
-{
-    token('_').prefix(normal_key()).expect("local key")
-}
-
-/// A parser for built-in keys
-pub fn builtin_key<'a, I>() -> impl Parser<I, Output = String> + 'a
-where
-    I: Input<Ok = char> + 'a,
-{
-    token('@').prefix(normal_key()).expect("built-in key")
+    choice((
+        bare_key().map(|name| Identifier {
+            kind: IdentifierKind::Bare,
+            name,
+        }),
+        raw_key().map(|name| Identifier {
+            kind: IdentifierKind::Raw,
+            name,
+        }),
+    ))
+    .expect("identifier")
 }
 
 /// A parser for bare keys

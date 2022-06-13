@@ -3,6 +3,7 @@
 mod tests;
 
 use alloc::string::String;
+use drake_types::token::StringKind;
 use somen::error::Expects;
 use somen::prelude::*;
 
@@ -20,13 +21,18 @@ where
 }
 
 /// A parser for (normal and raw) strings
-pub fn string<'a, I>() -> impl Parser<I, Output = String> + 'a
+pub fn string<'a, I>() -> impl Parser<I, Output = (String, StringKind)> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
     choice((
-        token('"').times(3).discard().fail().prefix(normal_string()),
-        raw_string(),
+        token('"')
+            .times(3)
+            .discard()
+            .fail()
+            .prefix(normal_string())
+            .map(|s| (s, StringKind::Normal)),
+        raw_string().map(|(s, n)| (s, StringKind::Raw(n))),
     ))
 }
 
@@ -45,7 +51,7 @@ where
 }
 
 /// A parser for raw strings
-pub fn raw_string<'a, I>() -> impl Parser<I, Output = String> + 'a
+pub fn raw_string<'a, I>() -> impl Parser<I, Output = (String, u8)> + 'a
 where
     I: Input<Ok = char> + 'a,
 {
@@ -61,7 +67,8 @@ where
                 .expect("raw character")
                 .repeat(..)
                 .skip(token('"').times(n).discard())
+                .collect()
+                .map(move |s| (s, n as u8))
         })
-        .collect()
         .expect("raw string")
 }

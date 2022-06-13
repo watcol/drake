@@ -1,5 +1,5 @@
 use alloc::string::String;
-use drake_types::token::Key;
+use drake_types::token::{Identifier, IdentifierKind, Key, KeyKind};
 use futures_executor::block_on;
 use somen::prelude::*;
 
@@ -9,40 +9,67 @@ use crate::utils::{assert_parser, assert_parser_fail};
 fn key() {
     block_on(async {
         let parser = &mut super::key().complete();
-        assert_parser(parser, "abc", Key::Normal(String::from("abc"))).await;
-        assert_parser(parser, "_abc", Key::Local(String::from("abc"))).await;
-        assert_parser(parser, "@abc", Key::Builtin(String::from("abc"))).await;
+        assert_parser(
+            parser,
+            "abc",
+            Key {
+                kind: KeyKind::Normal,
+                ident: Identifier {
+                    kind: IdentifierKind::Bare,
+                    name: String::from("abc"),
+                },
+            },
+        )
+        .await;
+        assert_parser(
+            parser,
+            "_abc",
+            Key {
+                kind: KeyKind::Local,
+                ident: Identifier {
+                    kind: IdentifierKind::Bare,
+                    name: String::from("abc"),
+                },
+            },
+        )
+        .await;
+        assert_parser(
+            parser,
+            "@abc",
+            Key {
+                kind: KeyKind::Builtin,
+                ident: Identifier {
+                    kind: IdentifierKind::Bare,
+                    name: String::from("abc"),
+                },
+            },
+        )
+        .await;
     })
 }
 
 #[test]
-fn normal_key() {
+fn identifier() {
     block_on(async {
-        let parser = &mut super::normal_key().complete();
-        assert_parser(parser, "abc", String::from("abc")).await;
-        assert_parser(parser, "${abc}", String::from("abc")).await;
-    })
-}
-
-#[test]
-fn local_key() {
-    block_on(async {
-        let parser = &mut super::local_key().complete();
-        assert_parser(parser, "_abc", String::from("abc")).await;
-        assert_parser(parser, "_${abc}", String::from("abc")).await;
-        assert_parser_fail(parser, "abc").await;
-        assert_parser_fail(parser, "_ abc").await;
-    })
-}
-
-#[test]
-fn builtin_key() {
-    block_on(async {
-        let parser = &mut super::builtin_key().complete();
-        assert_parser(parser, "@abc", String::from("abc")).await;
-        assert_parser(parser, "@${abc}", String::from("abc")).await;
-        assert_parser_fail(parser, "abc").await;
-        assert_parser_fail(parser, "@ abc").await;
+        let parser = &mut super::identifier().complete();
+        assert_parser(
+            parser,
+            "abc",
+            Identifier {
+                kind: IdentifierKind::Bare,
+                name: String::from("abc"),
+            },
+        )
+        .await;
+        assert_parser(
+            parser,
+            "${abc}",
+            Identifier {
+                kind: IdentifierKind::Raw,
+                name: String::from("abc"),
+            },
+        )
+        .await;
     })
 }
 

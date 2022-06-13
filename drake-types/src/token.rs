@@ -39,26 +39,75 @@ pub enum Symbol {
     CloseBrace,
 }
 
-/// Kinds of keys
+/// Keys
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Key {
-    /// A normal (bare or raw) key
-    Normal(String),
+pub struct Key {
+    /// A kind of keys
+    pub kind: KeyKind,
+    /// An identifier
+    pub ident: Identifier,
+}
+
+/// Kinds of identifiers
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum KeyKind {
+    /// A normal key
+    Normal,
     /// A local key
-    Local(String),
+    Local,
     /// A built-in key
-    Builtin(String),
+    Builtin,
+}
+
+/// Identifiers
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Identifier {
+    /// A kind of identifier
+    pub kind: IdentifierKind,
+    /// A name of identifier
+    pub name: String,
+}
+
+/// Kinds of identifiers
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum IdentifierKind {
+    /// A bare key
+    Bare,
+    /// A raw key
+    Raw,
 }
 
 /// Literal values
 #[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     /// An integer
-    Integer(u64),
+    Integer(u64, Radix),
     /// An floating point decimal
     Float(f64),
     /// A character
     Character(char),
     /// A string
-    String(String),
+    String(String, StringKind),
+}
+
+/// Radixes of integers
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum Radix {
+    /// A binary integer starts with `0b`
+    Binary,
+    /// A octal integer starts with `0o`
+    Octal,
+    /// A hexadecimal integer starts with `0x`
+    Hexadecimal,
+    /// A decimal integer with no prefix
+    Decimal,
+}
+
+/// Kinds of strings
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum StringKind {
+    /// A normal string surrounded by `""`
+    Normal,
+    /// A raw string surrounded by `"""""""` or more quotes
+    Raw(u8),
 }

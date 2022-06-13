@@ -15,9 +15,9 @@ where
 {
     choice((
         number::float().map(Literal::Float),
-        number::integer().map(Literal::Integer),
+        number::integer().map(|(i, radix)| Literal::Integer(i, radix)),
         string::character().map(Literal::Character),
-        string::string().map(Literal::String),
+        string::string().map(|(s, kind)| Literal::String(s, kind)),
     ))
     .expect("literal")
 }
