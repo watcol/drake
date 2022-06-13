@@ -10,52 +10,14 @@ pub mod space;
 pub mod symbol;
 mod utils;
 
-use alloc::string::String;
-use core::ops::Range;
 use somen::prelude::*;
+use drake_types::token::{Token, TokenValue};
 
-use key::{key, Key};
-use literal::{literal, Literal};
+use key::key;
+use literal::literal;
 use space::{comment, continuous, newline, whitespaces};
-use symbol::{symbol, Symbol};
+use symbol::symbol;
 
-/// Kinds of tokens
-#[derive(Clone, Debug, PartialEq)]
-pub enum TokenKind {
-    Newline,
-    Comment(String),
-    Symbol(Symbol),
-    Key(Key),
-    Literal(Literal),
-}
-
-/// A token value and a position
-#[derive(Clone, Debug)]
-pub struct Token {
-    pub kind: TokenKind,
-    pub pos: Range<usize>,
-}
-
-impl PartialEq<Token> for TokenKind {
-    #[inline]
-    fn eq(&self, other: &Token) -> bool {
-        self.eq(&other.kind)
-    }
-}
-
-impl PartialEq<TokenKind> for Token {
-    #[inline]
-    fn eq(&self, other: &TokenKind) -> bool {
-        self.kind.eq(other)
-    }
-}
-
-impl PartialEq for Token {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.kind.eq(&other.kind)
-    }
-}
 
 /// A parser for tokens
 pub fn token<'a, I>() -> impl Parser<I, Output = Token> + 'a
@@ -63,11 +25,11 @@ where
     I: Input<Ok = char, Locator = usize> + 'a,
 {
     choice((
-        newline().map(|_| TokenKind::Newline),
-        comment().map(TokenKind::Comment),
-        symbol().map(TokenKind::Symbol),
-        key().map(TokenKind::Key),
-        literal().map(TokenKind::Literal),
+        newline().map(|_| TokenValue::Newline),
+        comment().map(TokenValue::Comment),
+        symbol().map(TokenValue::Symbol),
+        key().map(TokenValue::Key),
+        literal().map(TokenValue::Literal),
     ))
     .with_position()
     .map(|(kind, pos)| Token { kind, pos })
@@ -84,7 +46,7 @@ where
             token().skip(whitespaces()).once(),
             continuous()
                 .map(|(c, pos)| Token {
-                    kind: TokenKind::Comment(c),
+                    kind: TokenValue::Comment(c),
                     pos,
                 })
                 .chain(token().skip(whitespaces()).once()),

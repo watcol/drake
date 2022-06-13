@@ -3,17 +3,10 @@
 mod tests;
 
 use alloc::string::String;
+use drake_types::token::Key;
 use somen::prelude::*;
 
 use crate::utils::escaped_char;
-
-/// Kinds of keys
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Key {
-    Normal(String),
-    Local(String),
-    Builtin(String),
-}
 
 /// A parser for keys
 pub fn key<'a, I>() -> impl Parser<I, Output = Key> + 'a

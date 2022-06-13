@@ -1,7 +1,7 @@
+use drake_types::token::Symbol;
 use futures_executor::block_on;
 use somen::prelude::*;
 
-use super::Symbol;
 use crate::utils::{assert_parser, assert_parser_fail};
 
 #[test]

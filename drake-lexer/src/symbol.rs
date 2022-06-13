@@ -2,19 +2,8 @@
 #[cfg(test)]
 mod tests;
 
+use drake_types::token::Symbol;
 use somen::prelude::*;
-
-/// Kinds of symbols
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Symbol {
-    Assign,
-    Comma,
-    Dot,
-    OpenBracket,
-    CloseBracket,
-    OpenBrace,
-    CloseBrace,
-}
 
 /// A parser for symbols
 pub fn symbol<'a, I>() -> impl Parser<I, Output = Symbol> + 'a

@@ -5,17 +5,8 @@ mod tests;
 pub mod number;
 pub mod string;
 
-use alloc::string::String;
+use drake_types::token::Literal;
 use somen::prelude::*;
-
-/// A literal
-#[derive(Clone, Debug, PartialEq)]
-pub enum Literal {
-    Integer(u64),
-    Float(f64),
-    Character(char),
-    String(String),
-}
 
 /// A parser for literals
 pub fn literal<'a, I>() -> impl Parser<I, Output = Literal> + 'a

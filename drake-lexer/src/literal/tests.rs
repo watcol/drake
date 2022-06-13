@@ -1,8 +1,8 @@
 use alloc::string::String;
+use drake_types::token::Literal;
 use futures_executor::block_on;
 use somen::prelude::*;
 
-use super::Literal;
 use crate::utils::assert_parser;
 
 #[test]

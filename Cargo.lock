@@ -22,6 +22,7 @@ version = "0.0.1"
 name = "drake-lexer"
 version = "0.0.1"
 dependencies = [
+ "drake-types",
  "futures-executor",
  "somen",
  "somen-language",

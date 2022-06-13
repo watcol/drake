@@ -1,10 +1,9 @@
 use alloc::string::String;
+use drake_types::token::Key;
 use futures_executor::block_on;
 use somen::prelude::*;
 
 use crate::utils::{assert_parser, assert_parser_fail};
-
-use super::Key;
 
 #[test]
 fn key() {

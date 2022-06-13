@@ -1,28 +1,25 @@
 use alloc::string::String;
 use alloc::vec;
+use drake_types::token::{Key, Literal, Symbol, Token, TokenValue};
 use futures_executor::block_on;
 use somen::prelude::*;
 
-use super::{Token, TokenKind};
-use crate::key::Key;
-use crate::literal::Literal;
-use crate::symbol::Symbol;
 use crate::utils::{assert_parser, assert_parser_fail};
 
 #[test]
 fn token() {
     block_on(async {
         let parser = &mut super::token().map(|Token { kind, .. }| kind).complete();
-        assert_parser(parser, "\n", TokenKind::Newline).await;
-        assert_parser(parser, "#abc", TokenKind::Comment(String::from("abc"))).await;
-        assert_parser(parser, "=", TokenKind::Symbol(Symbol::Assign)).await;
+        assert_parser(parser, "\n", TokenValue::Newline).await;
+        assert_parser(parser, "#abc", TokenValue::Comment(String::from("abc"))).await;
+        assert_parser(parser, "=", TokenValue::Symbol(Symbol::Assign)).await;
         assert_parser(
             parser,
             "abc",
-            TokenKind::Key(Key::Normal(String::from("abc"))),
+            TokenValue::Key(Key::Normal(String::from("abc"))),
         )
         .await;
-        assert_parser(parser, "0", TokenKind::Literal(Literal::Integer(0))).await;
+        assert_parser(parser, "0", TokenValue::Literal(Literal::Integer(0))).await;
     })
 }
 
@@ -37,12 +34,12 @@ fn tokens() {
             parser,
             " = \n # abc \n 0 # def ",
             vec![
-                TokenKind::Symbol(Symbol::Assign),
-                TokenKind::Newline,
-                TokenKind::Comment(String::from(" abc ")),
-                TokenKind::Newline,
-                TokenKind::Literal(Literal::Integer(0)),
-                TokenKind::Comment(String::from(" def ")),
+                TokenValue::Symbol(Symbol::Assign),
+                TokenValue::Newline,
+                TokenValue::Comment(String::from(" abc ")),
+                TokenValue::Newline,
+                TokenValue::Literal(Literal::Integer(0)),
+                TokenValue::Comment(String::from(" def ")),
             ],
         )
         .await;
@@ -50,10 +47,10 @@ fn tokens() {
             parser,
             " = \\ # abc \n # def \n 0",
             vec![
-                TokenKind::Symbol(Symbol::Assign),
-                TokenKind::Comment(String::from(" abc ")),
-                TokenKind::Comment(String::from(" def ")),
-                TokenKind::Literal(Literal::Integer(0)),
+                TokenValue::Symbol(Symbol::Assign),
+                TokenValue::Comment(String::from(" abc ")),
+                TokenValue::Comment(String::from(" def ")),
+                TokenValue::Literal(Literal::Integer(0)),
             ],
         )
         .await;
