@@ -8,7 +8,7 @@ use somen::prelude::*;
 
 use crate::token::literal;
 
-/// A parser for patterns
+/// A parser for expression
 pub fn expression<'a, I>() -> impl Parser<I, Output = Expression<I::Locator>> + 'a
 where
     I: Input<Ok = Token> + 'a,
