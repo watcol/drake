@@ -5,4 +5,5 @@ extern crate alloc;
 mod test_utils;
 
 pub mod key;
+pub mod pattern;
 pub mod token;
