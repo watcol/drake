@@ -1,3 +1,5 @@
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::ops::Range;
 
 #[derive(Clone, Debug, PartialEq)]
