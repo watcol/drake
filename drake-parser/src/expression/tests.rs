@@ -70,7 +70,6 @@ fn array() {
                     Token::Literal(TokenLit::Character('a')),
                     Token::Whitespaces,
                     Token::Newline,
-                    Token::Symbol(Symbol::Comma),
                     Token::Symbol(Symbol::CloseBracket),
                 ],
                 Some(vec![Expression {
@@ -98,7 +97,6 @@ fn array() {
                     Token::Literal(TokenLit::Character('a')),
                     Token::Symbol(Symbol::Comma),
                     Token::Literal(TokenLit::Character('b')),
-                    Token::Symbol(Symbol::Comma),
                     Token::Symbol(Symbol::CloseBracket),
                 ],
                 Some(vec![
@@ -206,6 +204,72 @@ fn inline_table() {
                         span: 7..8,
                     },
                 )]),
+            ),
+            (
+                &[
+                    Token::Symbol(Symbol::OpenBrace),
+                    Token::Identifier(Identifier {
+                        kind: IdentifierKind::Bare,
+                        name: String::from("abc"),
+                    }),
+                    Token::Symbol(Symbol::Assign),
+                    Token::Literal(TokenLit::Character('a')),
+                    Token::Symbol(Symbol::CloseBrace),
+                ],
+                Some(vec![(
+                    Key {
+                        kind: KeyKind::Normal,
+                        name: String::from("abc"),
+                        span: 1..2,
+                    },
+                    Expression {
+                        kind: ExpressionKind::Literal(Literal::Character('a')),
+                        span: 3..4,
+                    },
+                )]),
+            ),
+            (
+                &[
+                    Token::Symbol(Symbol::OpenBrace),
+                    Token::Identifier(Identifier {
+                        kind: IdentifierKind::Bare,
+                        name: String::from("abc"),
+                    }),
+                    Token::Symbol(Symbol::Assign),
+                    Token::Literal(TokenLit::Character('a')),
+                    Token::Symbol(Symbol::Comma),
+                    Token::Identifier(Identifier {
+                        kind: IdentifierKind::Bare,
+                        name: String::from("def"),
+                    }),
+                    Token::Symbol(Symbol::Assign),
+                    Token::Literal(TokenLit::Character('b')),
+                    Token::Symbol(Symbol::CloseBrace),
+                ],
+                Some(vec![
+                    (
+                        Key {
+                            kind: KeyKind::Normal,
+                            name: String::from("abc"),
+                            span: 1..2,
+                        },
+                        Expression {
+                            kind: ExpressionKind::Literal(Literal::Character('a')),
+                            span: 3..4,
+                        },
+                    ),
+                    (
+                        Key {
+                            kind: KeyKind::Normal,
+                            name: String::from("def"),
+                            span: 5..6,
+                        },
+                        Expression {
+                            kind: ExpressionKind::Literal(Literal::Character('b')),
+                            span: 7..8,
+                        },
+                    ),
+                ]),
             ),
             (
                 &[
