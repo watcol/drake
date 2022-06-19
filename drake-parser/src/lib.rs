@@ -7,4 +7,5 @@ mod test_utils;
 pub mod expression;
 pub mod key;
 pub mod pattern;
+pub mod statement;
 pub mod token;
