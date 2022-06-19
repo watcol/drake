@@ -12,8 +12,8 @@ pub enum Token {
     Comment(String),
     /// A symbol
     Symbol(Symbol),
-    /// A key
-    Key(Key),
+    /// An identifier
+    Identifier(Identifier),
     /// A literal
     Literal(Literal),
 }
@@ -29,6 +29,10 @@ pub enum Symbol {
     Dot,
     /// A backslash (`\`, `U+005C`)
     BackSlash,
+    /// An underscore (`_`, `U+005F`)
+    Underscore,
+    /// An at mark (`@`, `U+0040`)
+    At,
     /// An opening side of brackets (`[`, `U+005B`)
     OpenBracket,
     /// A closing side of brackets (`]`, `U+005D`)
@@ -37,26 +41,6 @@ pub enum Symbol {
     OpenBrace,
     /// A closing side of braces (`}`, `U+007D`)
     CloseBrace,
-}
-
-/// Keys
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Key {
-    /// A kind of keys
-    pub kind: KeyKind,
-    /// An identifier
-    pub ident: Identifier,
-}
-
-/// Kinds of identifiers
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum KeyKind {
-    /// A normal key
-    Normal,
-    /// A local key
-    Local,
-    /// A built-in key
-    Builtin,
 }
 
 /// Identifiers

@@ -15,6 +15,8 @@ where
         token(',').map(|_| Symbol::Comma),
         token('.').map(|_| Symbol::Dot),
         token('\\').map(|_| Symbol::BackSlash),
+        token('_').map(|_| Symbol::Underscore),
+        token('@').map(|_| Symbol::At),
         token('[').map(|_| Symbol::OpenBracket),
         token(']').map(|_| Symbol::CloseBracket),
         token('{').map(|_| Symbol::OpenBrace),

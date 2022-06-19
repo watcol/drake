@@ -3,28 +3,10 @@
 mod tests;
 
 use alloc::string::String;
-use drake_types::token::{Identifier, IdentifierKind, Key, KeyKind};
+use drake_types::token::{Identifier, IdentifierKind};
 use somen::prelude::*;
 
 use crate::utils::escaped_char;
-
-/// A parser for keys
-pub fn key<'a, I>() -> impl Parser<I, Output = Key> + 'a
-where
-    I: Input<Ok = char> + 'a,
-{
-    (
-        one_of("_@").opt().map(|mark| match mark {
-            Some('_') => KeyKind::Local,
-            Some('@') => KeyKind::Builtin,
-            None => KeyKind::Normal,
-            _ => unreachable!(),
-        }),
-        identifier(),
-    )
-        .map(|(kind, ident)| Key { kind, ident })
-        .expect("key")
-}
 
 /// A parser for normal (bare and raw) keys
 pub fn identifier<'a, I>() -> impl Parser<I, Output = Identifier> + 'a

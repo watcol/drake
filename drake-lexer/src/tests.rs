@@ -1,5 +1,5 @@
 use alloc::string::String;
-use drake_types::token::{Identifier, IdentifierKind, Key, KeyKind, Literal, Radix, Symbol, Token};
+use drake_types::token::{Identifier, IdentifierKind, Literal, Radix, Symbol, Token};
 use futures_executor::block_on;
 use somen::prelude::*;
 
@@ -16,12 +16,9 @@ fn token() {
         assert_parser(
             parser,
             "abc",
-            Token::Key(Key {
-                kind: KeyKind::Normal,
-                ident: Identifier {
-                    kind: IdentifierKind::Bare,
-                    name: String::from("abc"),
-                },
+            Token::Identifier(Identifier {
+                kind: IdentifierKind::Bare,
+                name: String::from("abc"),
             }),
         )
         .await;

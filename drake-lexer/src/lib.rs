@@ -4,7 +4,7 @@ extern crate alloc;
 #[cfg(test)]
 mod tests;
 
-pub mod key;
+pub mod identifier;
 pub mod literal;
 pub mod space;
 pub mod symbol;
@@ -13,7 +13,7 @@ mod utils;
 use drake_types::token::Token;
 use somen::prelude::*;
 
-use key::key;
+use identifier::identifier;
 use literal::literal;
 use space::{comment, newline, whitespaces};
 use symbol::symbol;
@@ -28,7 +28,7 @@ where
         whitespaces().map(|_| Token::Whitespaces),
         comment().map(Token::Comment),
         symbol().map(Token::Symbol),
-        key().map(Token::Key),
+        identifier().map(Token::Identifier),
         literal().map(Token::Literal),
     ))
     .expect("token")

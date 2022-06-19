@@ -12,6 +12,8 @@ fn symbol() {
         assert_parser(parser, ",", Symbol::Comma).await;
         assert_parser(parser, ".", Symbol::Dot).await;
         assert_parser(parser, "\\", Symbol::BackSlash).await;
+        assert_parser(parser, "_", Symbol::Underscore).await;
+        assert_parser(parser, "@", Symbol::At).await;
         assert_parser(parser, "[", Symbol::OpenBracket).await;
         assert_parser(parser, "]", Symbol::CloseBracket).await;
         assert_parser(parser, "{", Symbol::OpenBrace).await;
