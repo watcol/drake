@@ -8,12 +8,22 @@ use drake_types::token::{Literal as TokenLit, Symbol, Token};
 use somen::prelude::*;
 
 /// Spaces and line continuouses
-pub fn spaces<'a, I>() -> impl Parser<I, Output = ()> + 'a
+pub fn spaces<'a, I>(in_bracket: bool) -> impl Parser<I, Output = ()> + 'a
 where
     I: Input<Ok = Token> + 'a,
 {
     choice((
-        is(|token| matches!(token, Token::Whitespaces | Token::Comment(_))).discard(),
+        is(move |token| {
+            if in_bracket {
+                matches!(
+                    token,
+                    Token::Newline | Token::Whitespaces | Token::Comment(_)
+                )
+            } else {
+                matches!(token, Token::Whitespaces | Token::Comment(_))
+            }
+        })
+        .discard(),
         (symbol(Symbol::BackSlash), newline()).discard(),
     ))
     .expect("space")

@@ -9,7 +9,7 @@ use somen::prelude::*;
 #[test]
 fn spaces() {
     test_parser(
-        super::spaces().complete(),
+        super::spaces(false).complete(),
         &[
             (&[Token::Whitespaces], Some(())),
             (&[Token::Comment(String::from("abc"))], Some(())),
@@ -38,6 +38,44 @@ fn spaces() {
                 Some(()),
             ),
             (&[Token::Newline], None),
+            (&[Token::Whitespaces, Token::Symbol(Symbol::Assign)], None),
+            (&[Token::Symbol(Symbol::BackSlash)], None),
+            (
+                &[
+                    Token::Symbol(Symbol::BackSlash),
+                    Token::Newline,
+                    Token::Symbol(Symbol::Assign),
+                ],
+                None,
+            ),
+        ],
+    );
+    test_parser(
+        super::spaces(true).complete(),
+        &[
+            (&[Token::Newline], Some(())),
+            (&[Token::Whitespaces], Some(())),
+            (&[Token::Comment(String::from("abc"))], Some(())),
+            (
+                &[
+                    Token::Whitespaces,
+                    Token::Newline,
+                    Token::Comment(String::from("abc")),
+                ],
+                Some(()),
+            ),
+            (
+                &[
+                    Token::Newline,
+                    Token::Symbol(Symbol::BackSlash),
+                    Token::Newline,
+                    Token::Comment(String::from("abc")),
+                    Token::Whitespaces,
+                    Token::Symbol(Symbol::BackSlash),
+                    Token::Newline,
+                ],
+                Some(()),
+            ),
             (&[Token::Whitespaces, Token::Symbol(Symbol::Assign)], None),
             (&[Token::Symbol(Symbol::BackSlash)], None),
             (
