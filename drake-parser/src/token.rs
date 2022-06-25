@@ -63,9 +63,7 @@ pub fn symbol<'a, I>(symbol: Symbol) -> impl Parser<I, Output = ()> + 'a
 where
     I: Positioned<Ok = Token> + 'a,
 {
-    is(move |token| *token == Token::Symbol(symbol))
-        .discard()
-        .expect(alloc::format!("{:?}", symbol))
+    token(Token::Symbol(symbol)).discard()
 }
 
 /// An identifier
