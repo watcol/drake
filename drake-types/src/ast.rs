@@ -1,6 +1,7 @@
 //! Types for parsers
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::fmt;
 use core::ops::Range;
 
 /// Statements
@@ -95,4 +96,77 @@ pub enum Literal {
     String(String),
     Integer(u64),
     Float(f64),
+}
+
+impl<L> fmt::Display for Statement<L> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind {
+            StatementKind::ValueBinding(ref pat, ref exp) => write!(f, "{pat} = {exp}"),
+            StatementKind::TableHeader(TableHeaderKind::Normal, ref pat, Some(ref exp)) => {
+                write!(f, "[{pat} = {exp}]")
+            }
+            StatementKind::TableHeader(TableHeaderKind::Array, ref pat, Some(ref exp)) => {
+                write!(f, "[[{pat} = {exp}]]")
+            }
+            StatementKind::TableHeader(TableHeaderKind::Normal, ref pat, None) => {
+                write!(f, "[{pat}]")
+            }
+            StatementKind::TableHeader(TableHeaderKind::Array, ref pat, None) => {
+                write!(f, "[[{pat}]]")
+            }
+        }
+    }
+}
+
+impl<L> fmt::Display for Expression<L> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind {
+            ExpressionKind::Literal(ref lit) => lit.fmt(f),
+            ExpressionKind::Array(ref arr) => {
+                write!(f, "[")?;
+                for (i, elem) in arr.iter().enumerate() {
+                    if i != 0 {
+                        write!(f, ", ")?;
+                    }
+                    elem.fmt(f)?;
+                }
+                write!(f, "]")
+            }
+            ExpressionKind::InlineTable(ref table) => {
+                write!(f, "{{")?;
+                for (i, (pat, elem)) in table.iter().enumerate() {
+                    if i != 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{pat} = {elem}")?;
+                }
+                write!(f, "}}")
+            }
+        }
+    }
+}
+
+impl<L> fmt::Display for Pattern<L> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind {
+            PatternKind::Key(ref key) => key.fmt(f),
+        }
+    }
+}
+
+impl<L> fmt::Display for Key<L> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.name.fmt(f)
+    }
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Character(c) => write!(f, "{c:?}"),
+            Self::String(s) => write!(f, "{s:?}"),
+            Self::Integer(i) => i.fmt(f),
+            Self::Float(fl) => fl.fmt(f),
+        }
+    }
 }

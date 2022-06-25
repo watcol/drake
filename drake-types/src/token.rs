@@ -1,5 +1,6 @@
 //! Token types
-use alloc::string::String;
+use alloc::string::{String, ToString};
+use core::fmt;
 
 /// Values of tokens
 #[derive(Clone, Debug, PartialEq)]
@@ -94,4 +95,64 @@ pub enum StringKind {
     Normal,
     /// A raw string surrounded by `"""""""` or more quotes
     Raw(u8),
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Token::Newline => write!(f, "newline"),
+            Token::Whitespaces => write!(f, "whitespaces"),
+            Token::Comment(com) => write!(f, "// {com}"),
+            Token::Symbol(sym) => sym.fmt(f),
+            Token::Identifier(id) => id.fmt(f),
+            Token::Literal(lit) => lit.fmt(f),
+        }
+    }
+}
+
+impl fmt::Display for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Assign => write!(f, "="),
+            Self::Comma => write!(f, ","),
+            Self::Dot => write!(f, "."),
+            Self::BackSlash => write!(f, "\\"),
+            Self::Underscore => write!(f, "_"),
+            Self::At => write!(f, "@"),
+            Self::OpenBracket => write!(f, "["),
+            Self::CloseBracket => write!(f, "]"),
+            Self::OpenBrace => write!(f, "{{"),
+            Self::CloseBrace => write!(f, "}}"),
+        }
+    }
+}
+
+impl fmt::Display for Identifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind {
+            IdentifierKind::Bare => self.name.fmt(f),
+            IdentifierKind::Raw => write!(
+                f,
+                "${{{}}}",
+                self.name.escape_debug().to_string().replace('{', "\\{")
+            ),
+        }
+    }
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Integer(i, Radix::Binary) => write!(f, "0b{i:b}"),
+            Self::Integer(i, Radix::Octal) => write!(f, "0o{i:o}"),
+            Self::Integer(i, Radix::Hexadecimal) => write!(f, "0o{i:x}"),
+            Self::Integer(i, Radix::Decimal) => i.fmt(f),
+            Self::Float(fl) => fl.fmt(f),
+            Self::Character(c) => write!(f, "{c:?}"),
+            Self::String(s, StringKind::Normal) => write!(f, "{s:?}"),
+            Self::String(s, StringKind::Raw(n)) => {
+                write!(f, "{0}{s:?}{0}", "\"".repeat(*n as usize - 1))
+            }
+        }
+    }
 }
