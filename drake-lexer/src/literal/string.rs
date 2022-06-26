@@ -26,13 +26,8 @@ where
     I: Input<Ok = char> + 'a,
 {
     choice((
-        token('"')
-            .times(3)
-            .discard()
-            .fail()
-            .prefix(normal_string())
-            .map(|s| (s, StringKind::Normal)),
         raw_string().map(|(s, n)| (s, StringKind::Raw(n))),
+        normal_string().map(|s| (s, StringKind::Normal)),
     ))
 }
 
@@ -58,15 +53,12 @@ where
     token('"')
         .repeat(3..)
         .count()
+        .spanned()
         .then(|n| {
-            token('"')
-                .times(n)
-                .discard()
-                .fail()
-                .prefix(newline().or(any()))
+            newline()
+                .or(any())
                 .expect("raw character")
-                .repeat(..)
-                .skip(token('"').times(n).discard())
+                .until(token('"').times(n).discard().spanned())
                 .collect()
                 .map(move |s| (s, n as u8))
         })
