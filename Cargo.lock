@@ -24,7 +24,7 @@ version = "0.0.1"
 dependencies = [
  "drake-types",
  "futures-executor",
- "somen 0.3.0",
+ "somen",
  "somen-language",
 ]
 
@@ -34,7 +34,7 @@ version = "0.0.1"
 dependencies = [
  "drake-types",
  "futures-executor",
- "somen 0.3.1",
+ "somen",
 ]
 
 [[package]]
@@ -112,19 +112,9 @@ checksum = "eb703cfe953bccee95685111adeedb76fabe4e97549a58d16f03ea7b9367bb32"
 
 [[package]]
 name = "somen"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "262d336892d831f5e16b7c734b11ac5ac45d6e89ae9f88c479a0139c519ddeba"
-dependencies = [
- "futures-core",
- "futures-io",
- "pin-project-lite",
-]
-
-[[package]]
-name = "somen"
 version = "0.3.1"
-source = "git+https://github.com/watcol/somen.git#dfcab03ddd5325cd31c8f4a98b98a5f60f9a9804"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a8651a80951b7817b5c5d52b67a0aac244d212da3ba1bc56858023df20f16d4"
 dependencies = [
  "futures-core",
  "futures-io",
@@ -139,5 +129,5 @@ checksum = "37559f145d193436e86f43ee4c8c36df846aa254fb32420ee7c34787ff113363"
 dependencies = [
  "compute-float",
  "num-traits",
- "somen 0.3.0",
+ "somen",
 ]

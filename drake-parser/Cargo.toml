@@ -4,8 +4,7 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-# somen = "0.3"
-somen = { git = "https://github.com/watcol/somen.git" }
+somen = "0.3"
 drake-types = { path = "../drake-types/" }
 
 [dev-dependencies]
