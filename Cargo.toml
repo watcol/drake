@@ -17,6 +17,7 @@ include = [
 
 [workspace]
 members = [
+  "drake-core",
   "drake-types",
   "drake-lexer",
   "drake-parser",

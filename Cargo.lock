@@ -19,6 +19,10 @@ name = "drake"
 version = "0.0.1"
 
 [[package]]
+name = "drake-core"
+version = "0.0.1"
+
+[[package]]
 name = "drake-lexer"
 version = "0.0.1"
 dependencies = [
