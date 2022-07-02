@@ -39,7 +39,7 @@ an empty text).
 stmt = "foo"
   stmt2 = "bar"
 stmt3 = \
-# Empty lines in line continuouses are allowed.
+\ # Empty lines in line continuouses are allowed.
   "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do" + \
   "eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad" + \
   "minim veniam, quis nostrud exercitation ullamco laboris nisi ut" + \
@@ -537,8 +537,7 @@ key = "foo"
 
 ## Terms
 - "Whitespace" means tab (`U+0009`) or space (`U+0020`).
-- "Newline" means a string sequence starts with line feed (`U+000A`) or
-  carriage return (`U+000D`), and contains only tabs, spaces, line feeds,
+- "Newline" means line feed (`U+000A`) or carriage return (`U+000D`).
   carriage returns or comments.
 - "Parenthesis" means left and right of round brackets (`()`), curly brackets
   (`{}`), or square brackets (`[]`).
