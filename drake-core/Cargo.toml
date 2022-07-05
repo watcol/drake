@@ -2,3 +2,7 @@
 name = "drake-core"
 version = "0.0.1"
 edition = "2021"
+
+[dependencies]
+drake-types = { path = "../drake-types" }
+codespan-reporting = "0.11"
