@@ -8,35 +8,70 @@ use codespan_reporting::files::SimpleFiles;
 use drake_types::ast::Statement;
 use drake_types::token::Token;
 
-/// A context for runtime includes a loader and a source code database
+/// A struct contains all runtime informations
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct Context<L: ModuleLoader> {
-    files: SimpleFiles<L::Name, Source>,
-    loader: L,
+pub struct Runtime {
+    modules: Vec<Module>,
+    files: SimpleFiles<String, Source>,
 }
 
-/// A trait for loading modules
-pub trait ModuleLoader {
-    /// A type of module specifiers with a human-readable [`Display`] implementation
-    type Name: core::fmt::Display;
+impl Runtime {
+    pub fn new() -> Self {
+        Self {
+            modules: Vec::new(),
+            files: SimpleFiles::new(),
+        }
+    }
 
-    /// Loads a specified module into [`String`]
-    fn load(name: &Self::Name) -> String;
+    pub fn add(&mut self, name: String, source: String) -> usize {
+        if let Some((id, _)) = self
+            .modules
+            .iter()
+            .enumerate()
+            .find(|(_, m)| m.name == name)
+        {
+            return id;
+        }
+
+        let source = Source::from(source);
+        let mod_id = self.files.add(name.clone(), source.clone());
+
+        let module = Module::new(name, source);
+        self.modules.push(module);
+        mod_id
+    }
 }
 
-/// A module which has partial (or full) information of processing
+/// A struct contains partial (or full) information while processing a module
 #[derive(Debug, Clone, PartialEq)]
-pub struct Module<FileName> {
-    name: FileName,
-    source: Option<Source>,
+pub struct Module {
+    name: String,
+    source: Source,
     tokens: Option<Vec<Token>>,
     ast: Option<Vec<Statement<usize>>>,
 }
 
-/// A sharable form of source code indexed by [`Context`]
+impl Module {
+    pub fn new(name: String, source: Source) -> Self {
+        Self {
+            name,
+            source,
+            tokens: None,
+            ast: None,
+        }
+    }
+}
+
+/// A sharable form of source code
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Source(Arc<String>);
+
+impl From<String> for Source {
+    fn from(s: String) -> Self {
+        Self(Arc::new(s))
+    }
+}
 
 impl AsRef<str> for Source {
     #[inline]
