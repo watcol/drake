@@ -5,4 +5,8 @@ edition = "2021"
 
 [dependencies]
 drake-types = { path = "../drake-types" }
+drake-lexer = { path = "../drake-lexer" }
+drake-parser = { path = "../drake-parser" }
 codespan-reporting = "0.11"
+somen = "0.3.1"
+futures-util = "0.3"

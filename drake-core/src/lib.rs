@@ -61,6 +61,69 @@ impl Module {
             ast: None,
         }
     }
+
+    pub async fn tokenize(&mut self) -> Result<&[Token], ParseError> {
+        use futures_util::TryStreamExt;
+        use somen::prelude::*;
+
+        let mut input = stream::from_iter(self.source.as_ref().chars()).buffered_rewind();
+        let mut lexer = drake_lexer::token().repeat(..);
+
+        let tokens = lexer.parse_iterable(&mut input).try_collect().await?;
+        self.tokens = Some(tokens);
+        Ok(self.tokens.as_ref().unwrap())
+    }
+
+    pub async fn parse(&mut self) -> Result<&[Statement<usize>], ParseError> {
+        use futures_util::TryStreamExt;
+        use somen::prelude::*;
+
+        let ast = {
+            let tokens = match self.tokens {
+                Some(ref tokens) => tokens.as_slice(),
+                None => self.tokenize().await?,
+            };
+
+            let mut input = stream::from_slice(tokens);
+            let mut parser = drake_parser::statement::statement().repeat(..);
+
+            parser.parse_iterable(&mut input).try_collect().await?
+        };
+
+        self.ast = Some(ast);
+        Ok(self.ast.as_ref().unwrap())
+    }
+}
+
+pub enum ParseError {
+    Tokenize(somen::error::Error<usize>),
+    Parse(somen::error::Error<usize>),
+    Unexpected,
+}
+
+type OriginalTokenizeError = somen::error::ParseError<
+    usize,
+    somen::stream::rewind::BufferedError<core::convert::Infallible>,
+>;
+
+type OriginalParseError = somen::error::ParseError<usize, core::convert::Infallible>;
+
+impl From<OriginalTokenizeError> for ParseError {
+    fn from(err: OriginalTokenizeError) -> Self {
+        match err {
+            somen::error::ParseError::Parser(e) => Self::Tokenize(e),
+            _ => Self::Unexpected,
+        }
+    }
+}
+
+impl From<OriginalParseError> for ParseError {
+    fn from(err: OriginalParseError) -> Self {
+        match err {
+            somen::error::ParseError::Parser(e) => Self::Parse(e),
+            _ => Self::Unexpected,
+        }
+    }
 }
 
 /// A sharable form of source code
