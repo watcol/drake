@@ -16,12 +16,20 @@ pub struct Runtime {
     files: SimpleFiles<String, Source>,
 }
 
-impl Runtime {
-    pub fn new() -> Self {
+impl Default for Runtime {
+    #[inline]
+    fn default() -> Self {
         Self {
             modules: Vec::new(),
             files: SimpleFiles::new(),
         }
+    }
+}
+
+impl Runtime {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn add(&mut self, name: String, source: String) -> usize {
@@ -41,6 +49,21 @@ impl Runtime {
         self.modules.push(module);
         mod_id
     }
+
+    #[inline]
+    pub fn get_modules(&self) -> &[Module] {
+        self.modules.as_slice()
+    }
+
+    #[inline]
+    pub fn get_module(&self, id: usize) -> Option<&Module> {
+        self.modules.get(id)
+    }
+
+    #[inline]
+    pub fn get_mut_module(&mut self, id: usize) -> Option<&mut Module> {
+        self.modules.get_mut(id)
+    }
 }
 
 /// A struct contains partial (or full) information while processing a module
@@ -53,6 +76,7 @@ pub struct Module {
 }
 
 impl Module {
+    #[inline]
     pub fn new(name: String, source: Source) -> Self {
         Self {
             name,
@@ -93,6 +117,26 @@ impl Module {
         self.ast = Some(ast);
         Ok(self.ast.as_ref().unwrap())
     }
+
+    #[inline]
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    #[inline]
+    pub fn get_source(&self) -> &str {
+        self.source.as_ref()
+    }
+
+    #[inline]
+    pub fn get_tokens(&self) -> Option<&[Token]> {
+        self.tokens.as_ref().map(|tokens| tokens.as_slice())
+    }
+
+    #[inline]
+    pub fn get_ast(&self) -> Option<&[Statement<usize>]> {
+        self.ast.as_ref().map(|ast| ast.as_slice())
+    }
 }
 
 pub enum ParseError {
@@ -109,6 +153,7 @@ type OriginalTokenizeError = somen::error::ParseError<
 type OriginalParseError = somen::error::ParseError<usize, core::convert::Infallible>;
 
 impl From<OriginalTokenizeError> for ParseError {
+    #[inline]
     fn from(err: OriginalTokenizeError) -> Self {
         match err {
             somen::error::ParseError::Parser(e) => Self::Tokenize(e),
@@ -118,6 +163,7 @@ impl From<OriginalTokenizeError> for ParseError {
 }
 
 impl From<OriginalParseError> for ParseError {
+    #[inline]
     fn from(err: OriginalParseError) -> Self {
         match err {
             somen::error::ParseError::Parser(e) => Self::Parse(e),
@@ -131,8 +177,25 @@ impl From<OriginalParseError> for ParseError {
 pub struct Source(Arc<String>);
 
 impl From<String> for Source {
+    #[inline]
     fn from(s: String) -> Self {
         Self(Arc::new(s))
+    }
+}
+
+impl core::fmt::Display for Source {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl core::ops::Deref for Source {
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
     }
 }
 
