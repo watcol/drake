@@ -27,11 +27,13 @@ impl Default for Runtime {
 }
 
 impl Runtime {
+    /// Creates a new instance.
     #[inline]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Registers a new module by the name and the source code.
     pub fn add(&mut self, name: String, source: String) -> usize {
         if let Some((id, _)) = self.get_module_by_name(&name) {
             return id;
@@ -45,16 +47,19 @@ impl Runtime {
         mod_id
     }
 
+    /// Gets a slice of modules indexed by identifiers.
     #[inline]
     pub fn get_modules(&self) -> &[Module] {
         self.modules.as_slice()
     }
 
+    /// Gets a reference of a corresponding module by the given identifier.
     #[inline]
     pub fn get_module(&self, id: usize) -> Option<&Module> {
         self.modules.get(id)
     }
 
+    /// Gets a reference of a corresponding module by the given name.
     #[inline]
     pub fn get_module_by_name<S: AsRef<str>>(&self, name: S) -> Option<(usize, &Module)> {
         self.modules
@@ -63,11 +68,13 @@ impl Runtime {
             .find(|(_, m)| m.name == name.as_ref())
     }
 
+    /// Gets a mutable reference of a corresponding module by the module identifier.
     #[inline]
     pub fn get_mut_module(&mut self, id: usize) -> Option<&mut Module> {
         self.modules.get_mut(id)
     }
 
+    /// Gets a mutable reference of a corresponding module by the given name.
     #[inline]
     pub fn get_mut_module_by_name<S: AsRef<str>>(
         &mut self,
@@ -90,6 +97,7 @@ pub struct Module {
 }
 
 impl Module {
+    /// Creates a new instance.
     #[inline]
     pub fn new(name: String, source: Source) -> Self {
         Self {
@@ -100,6 +108,7 @@ impl Module {
         }
     }
 
+    /// Tokenizes the module and returns a reference of tokens.
     pub async fn tokenize(&mut self) -> Result<&[Token], ParseError> {
         use futures_util::TryStreamExt;
         use somen::prelude::*;
@@ -112,6 +121,9 @@ impl Module {
         Ok(self.tokens.as_ref().unwrap())
     }
 
+    /// Parses the module and returns a reference of the parsed AST.
+    ///
+    /// Note that this function also does tokenizing if it has not done yet.
     pub async fn parse(&mut self) -> Result<&[Statement<usize>], ParseError> {
         use futures_util::TryStreamExt;
         use somen::prelude::*;
@@ -132,30 +144,38 @@ impl Module {
         Ok(self.ast.as_ref().unwrap())
     }
 
+    /// Gets a reference for the name of the module.
     #[inline]
     pub fn get_name(&self) -> &str {
         &self.name
     }
 
+    /// Gets a reference for the source code of the module.
     #[inline]
     pub fn get_source(&self) -> &str {
         self.source.as_ref()
     }
 
+    /// Gets a reference for the tokenized result of the module.
     #[inline]
     pub fn get_tokens(&self) -> Option<&[Token]> {
         self.tokens.as_ref().map(|tokens| tokens.as_slice())
     }
 
+    /// Gets a reference for the parsed AST of the module.
     #[inline]
     pub fn get_ast(&self) -> Option<&[Statement<usize>]> {
         self.ast.as_ref().map(|ast| ast.as_slice())
     }
 }
 
+/// An error occured while parsing or tokenizing.
 pub enum ParseError {
+    /// A tokenizing error
     Tokenize(somen::error::Error<usize>),
+    /// A parsing error
     Parse(somen::error::Error<usize>),
+    /// An unexpected error (probably an internal bug)
     Unexpected,
 }
 
