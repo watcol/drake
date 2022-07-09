@@ -33,12 +33,7 @@ impl Runtime {
     }
 
     pub fn add(&mut self, name: String, source: String) -> usize {
-        if let Some((id, _)) = self
-            .modules
-            .iter()
-            .enumerate()
-            .find(|(_, m)| m.name == name)
-        {
+        if let Some((id, _)) = self.get_module_by_name(&name) {
             return id;
         }
 
@@ -61,8 +56,27 @@ impl Runtime {
     }
 
     #[inline]
+    pub fn get_module_by_name<S: AsRef<str>>(&self, name: S) -> Option<(usize, &Module)> {
+        self.modules
+            .iter()
+            .enumerate()
+            .find(|(_, m)| m.name == name.as_ref())
+    }
+
+    #[inline]
     pub fn get_mut_module(&mut self, id: usize) -> Option<&mut Module> {
         self.modules.get_mut(id)
+    }
+
+    #[inline]
+    pub fn get_mut_module_by_name<S: AsRef<str>>(
+        &mut self,
+        name: S,
+    ) -> Option<(usize, &mut Module)> {
+        self.modules
+            .iter_mut()
+            .enumerate()
+            .find(|(_, m)| m.name == name.as_ref())
     }
 }
 
