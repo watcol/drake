@@ -73,13 +73,13 @@ impl Runtime {
         self.modules.as_slice()
     }
 
-    /// Gets a reference of a corresponding module by the given identifier.
+    /// Gets a reference of a module corresponding to given identifier.
     #[inline]
     pub fn get_module(&self, id: usize) -> Option<&Module> {
         self.modules.get(id)
     }
 
-    /// Gets a reference of a corresponding module by the given name.
+    /// Gets a reference of a module corresponding to given name.
     #[inline]
     pub fn get_module_by_name<S: AsRef<str>>(&self, name: S) -> Option<(usize, &Module)> {
         self.modules
@@ -88,13 +88,13 @@ impl Runtime {
             .find(|(_, m)| m.get_name() == name.as_ref())
     }
 
-    /// Gets a mutable reference of a corresponding module by the module identifier.
+    /// Gets a mutable reference of a module corresponding to given module identifier.
     #[inline]
     pub fn get_mut_module(&mut self, id: usize) -> Option<&mut Module> {
         self.modules.get_mut(id)
     }
 
-    /// Gets a mutable reference of a corresponding module by the given name.
+    /// Gets a mutable reference of a module corresponding to given name.
     #[inline]
     pub fn get_mut_module_by_name<S: AsRef<str>>(
         &mut self,
