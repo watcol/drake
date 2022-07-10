@@ -2,14 +2,14 @@
 extern crate alloc;
 
 mod files;
-mod module;
+pub mod module;
 
 use alloc::string::String;
 use alloc::vec::Vec;
 use codespan_reporting::files::{Error, Files};
 use core::ops::Range;
 
-pub use files::Source;
+#[doc(inline)]
 pub use module::Module;
 
 /// A struct contains all runtime informations
