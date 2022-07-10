@@ -1,31 +1,51 @@
 #![no_std]
 extern crate alloc;
 
-mod module;
 mod files;
+mod module;
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use codespan_reporting::files::SimpleFiles;
+use codespan_reporting::files::{Error, Files};
+use core::ops::Range;
 
-pub use module::Module;
 pub use files::Source;
+pub use module::Module;
 
 /// A struct contains all runtime informations
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 #[allow(dead_code)]
 pub struct Runtime {
     modules: Vec<Module>,
-    files: SimpleFiles<String, Source>,
 }
 
-impl Default for Runtime {
+impl<'a> Files<'a> for Runtime {
+    type FileId = usize;
+    type Name = <Module as Files<'a>>::Name;
+    type Source = <Module as Files<'a>>::Source;
+
     #[inline]
-    fn default() -> Self {
-        Self {
-            modules: Vec::new(),
-            files: SimpleFiles::new(),
-        }
+    fn name(&'a self, id: Self::FileId) -> Result<Self::Name, Error> {
+        self.get_module(id).ok_or(Error::FileMissing)?.name(())
+    }
+
+    #[inline]
+    fn source(&'a self, id: Self::FileId) -> Result<Self::Source, Error> {
+        self.get_module(id).ok_or(Error::FileMissing)?.source(())
+    }
+
+    #[inline]
+    fn line_index(&'a self, id: Self::FileId, byte_index: usize) -> Result<usize, Error> {
+        self.get_module(id)
+            .ok_or(Error::FileMissing)?
+            .line_index((), byte_index)
+    }
+
+    #[inline]
+    fn line_range(&'a self, id: Self::FileId, line_index: usize) -> Result<Range<usize>, Error> {
+        self.get_module(id)
+            .ok_or(Error::FileMissing)?
+            .line_range((), line_index)
     }
 }
 
@@ -42,11 +62,8 @@ impl Runtime {
             return id;
         }
 
-        let source = Source::from(source);
-        let mod_id = self.files.add(name.clone(), source.clone());
-
-        let module = Module::new(name, source);
-        self.modules.push(module);
+        let mod_id = self.modules.len();
+        self.modules.push(Module::new(name, source));
         mod_id
     }
 

@@ -2,6 +2,8 @@ mod parse;
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use codespan_reporting::files::{Error, Files};
+use core::ops::Range;
 use drake_types::ast::Statement;
 use drake_types::token::Token;
 
@@ -18,13 +20,48 @@ pub struct Module {
     ast: Option<Vec<Statement<usize>>>,
 }
 
+impl<'a> Files<'a> for Module {
+    type FileId = ();
+    type Name = &'a str;
+    type Source = &'a str;
+
+    #[inline]
+    fn name(&'a self, _: Self::FileId) -> Result<Self::Name, codespan_reporting::files::Error> {
+        Ok(&self.name)
+    }
+
+    #[inline]
+    fn source(&'a self, _: Self::FileId) -> Result<Self::Source, codespan_reporting::files::Error> {
+        Ok(self.source.as_ref())
+    }
+
+    #[inline]
+    fn line_index(
+        &'a self,
+        _: Self::FileId,
+        byte_index: usize,
+    ) -> Result<usize, codespan_reporting::files::Error> {
+        Ok(self.source.line_index(byte_index))
+    }
+
+    #[inline]
+    fn line_range(&'a self, _: Self::FileId, line_index: usize) -> Result<Range<usize>, Error> {
+        self.source
+            .line_range(line_index)
+            .map_err(|max| Error::LineTooLarge {
+                given: line_index,
+                max,
+            })
+    }
+}
+
 impl Module {
     /// Creates a new instance.
     #[inline]
-    pub fn new(name: String, source: Source) -> Self {
+    pub fn new(name: String, source: String) -> Self {
         Self {
             name,
-            source,
+            source: Source::new(source),
             tokens: None,
             ast: None,
         }
