@@ -21,6 +21,7 @@ members = [
   "drake-types",
   "drake-lexer",
   "drake-parser",
+  "drake-runtime",
 ]
 
 [dependencies]

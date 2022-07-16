@@ -60,6 +60,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "drake-runtime"
+version = "0.0.1"
+dependencies = [
+ "drake-types",
+]
+
+[[package]]
 name = "drake-types"
 version = "0.0.1"
 

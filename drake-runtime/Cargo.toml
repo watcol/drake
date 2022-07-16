@@ -1,0 +1,7 @@
+[package]
+name = "drake-runtime"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+drake-types = { path = "../drake-types" }
