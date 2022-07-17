@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 drake-types = { path = "../drake-types" }
+hashbrown = "0.12"
