@@ -56,6 +56,7 @@ dependencies = [
  "futures-util",
  "pin-project-lite",
  "somen",
+ "somen-decode",
 ]
 
 [[package]]
@@ -229,6 +230,15 @@ dependencies = [
  "futures-core",
  "futures-io",
  "pin-project-lite",
+]
+
+[[package]]
+name = "somen-decode"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84554a304e879cd1ad32682559faaf5475fc138e4a08ccb6475f31b8024fe174"
+dependencies = [
+ "somen",
 ]
 
 [[package]]

@@ -16,8 +16,10 @@ pub struct Token {
     pub span: Range<usize>,
 }
 
-pub async fn tokenize(source: &str) -> Result<Vec<Token>, ParseError> {
-    let mut input = stream::from_iter(source.chars()).buffered_rewind();
+pub async fn tokenize<T: AsRef<[u8]> + ?Sized>(source: &T) -> Result<Vec<Token>, ParseError> {
+    let mut bytes = stream::from_slice(source.as_ref());
+    let mut decoder = somen_decode::utf8().repeat(..).complete();
+    let mut input = decoder.parse_iterable(&mut bytes);
     let mut lexer = drake_lexer::token()
         .with_position()
         .map(|(kind, span)| Token { kind, span })
@@ -35,6 +37,8 @@ pub async fn parse(tokens: &[Token]) -> Result<Vec<Statement<usize>>, ParseError
 
 /// An error occured while parsing or tokenizing.
 pub enum ParseError {
+    /// A decoding error
+    Decode(somen::error::Error<usize>),
     /// A tokenizing error
     Tokenize(somen::error::Error<usize>),
     /// A parsing error
@@ -43,18 +47,18 @@ pub enum ParseError {
     Unexpected,
 }
 
-type OriginalTokenizeError = somen::error::ParseError<
-    usize,
-    somen::stream::rewind::BufferedError<core::convert::Infallible>,
->;
+type OriginalTokenizeError =
+    somen::error::ParseError<usize, somen::error::ParseError<usize, core::convert::Infallible>>;
 
 type OriginalParseError = somen::error::ParseError<usize, core::convert::Infallible>;
 
 impl From<OriginalTokenizeError> for ParseError {
     #[inline]
     fn from(err: OriginalTokenizeError) -> Self {
+        use somen::error::ParseError;
         match err {
-            somen::error::ParseError::Parser(e) => Self::Tokenize(e),
+            ParseError::Parser(e) => Self::Tokenize(e),
+            ParseError::Stream(ParseError::Parser(e)) => Self::Decode(e),
             _ => Self::Unexpected,
         }
     }
