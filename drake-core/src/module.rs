@@ -6,11 +6,10 @@ use alloc::vec::Vec;
 use codespan_reporting::files::{Error, Files};
 use core::ops::Range;
 use drake_types::ast::Statement;
-use drake_types::token::Token;
 
 use crate::files::Source;
-pub use parse::ParseError;
 use parse::{parse, tokenize};
+pub use parse::{ParseError, Token};
 
 /// A struct contains partial (or full) information while processing a module
 #[derive(Debug, Clone, PartialEq)]

@@ -54,6 +54,7 @@ dependencies = [
  "drake-parser",
  "drake-types",
  "futures-util",
+ "pin-project-lite",
  "somen",
 ]
 
