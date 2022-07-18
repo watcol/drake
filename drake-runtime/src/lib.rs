@@ -3,10 +3,23 @@ extern crate alloc;
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::ops::Range;
 use drake_types::ast::{
     Expression, ExpressionKind, KeyKind, Literal, Pattern, PatternKind, Statement, StatementKind,
 };
-use drake_types::runtime::{Error, Table, Value, Variable};
+use drake_types::runtime::{Table, Value, Variable};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Error<L> {
+    DuplicateKey {
+        existing: Range<L>,
+        found: Range<L>,
+    },
+    NotSupported {
+        feature: &'static str,
+        span: Range<L>,
+    },
+}
 
 pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Result<Value<L>, Error<L>> {
     let mut root = Table::new();

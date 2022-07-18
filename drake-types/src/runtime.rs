@@ -42,15 +42,3 @@ impl<L> Table<L> {
         Self::default()
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Error<L> {
-    DuplicateKey {
-        existing: Range<L>,
-        found: Range<L>,
-    },
-    NotSupported {
-        feature: &'static str,
-        span: Range<L>,
-    },
-}
