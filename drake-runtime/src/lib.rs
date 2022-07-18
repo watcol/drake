@@ -5,28 +5,79 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Range;
 use drake_types::ast::{
-    Expression, ExpressionKind, Key, KeyKind, Literal, Pattern, PatternKind, Statement,
-    StatementKind,
+    Expression, ExpressionKind, KeyKind, Literal, Pattern, PatternKind, Statement, StatementKind,
 };
 use hashbrown::HashMap;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Value {
+pub enum Value<L> {
     Character(char),
     String(String),
     Integer(u64),
     Float(f64),
-    Array(Vec<Value>),
-    Table(HashMap<String, Value>),
+    Array(Vec<Value<L>>),
+    Table(Table<L>),
 }
 
-pub struct Error<L> {
-    pub msg: &'static str,
-    pub span: Range<L>,
+#[derive(Clone, Debug, PartialEq)]
+pub struct Variable<L> {
+    pub value: Value<L>,
+    pub defined: Range<L>,
+    pub used: bool,
 }
 
-pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Result<Value, Error<L>> {
-    let mut root = HashMap::with_capacity((ast.len() / 5) * 4);
+#[derive(Clone, Debug, PartialEq)]
+pub struct Table<L> {
+    pub global: HashMap<String, Variable<L>>,
+    pub local: HashMap<String, Variable<L>>,
+}
+
+impl<L> Default for Table<L> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            global: HashMap::new(),
+            local: HashMap::new(),
+        }
+    }
+}
+
+impl<L> Table<L> {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn insert(&mut self, global: bool, key: String, var: Variable<L>) -> Option<&Variable<L>> {
+        let table = if global {
+            &mut self.global
+        } else {
+            &mut self.local
+        };
+
+        if table.contains_key(&key) {
+            Some(&table[&key])
+        } else {
+            table.insert(key, var);
+            None
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Error<L> {
+    DuplicateKey {
+        existing: Range<L>,
+        found: Range<L>,
+    },
+    NotSupported {
+        feature: &'static str,
+        span: Range<L>,
+    },
+}
+
+pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Result<Value<L>, Error<L>> {
+    let mut root = Table::new();
     let current_table = &mut root;
     for stmt in ast {
         match stmt.kind {
@@ -38,31 +89,41 @@ pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Result<Value, Error<L>> {
 }
 
 fn bind<L: Clone>(
-    table: &mut HashMap<String, Value>,
+    table: &mut Table<L>,
     pat: Pattern<L>,
     expr: Expression<L>,
 ) -> Result<(), Error<L>> {
     match pat.kind {
         PatternKind::Key(key) => {
-            let span = key.span.clone();
-            if let Some(name) = key_to_str(key)? {
-                if table.contains_key(&name) {
-                    Err(Error {
-                        msg: "This key is already used.",
-                        span,
+            let global = match key_kind(key.kind) {
+                Some(b) => b,
+                None => {
+                    return Err(Error::NotSupported {
+                        feature: "built-in keys",
+                        span: key.span,
                     })
-                } else {
-                    table.insert(name, expr_to_value(expr)?);
-                    Ok(())
                 }
-            } else {
-                Ok(())
+            };
+            match table.insert(
+                global,
+                key.name,
+                Variable {
+                    value: expr_to_value(expr)?,
+                    defined: key.span.clone(),
+                    used: global,
+                },
+            ) {
+                Some(var) => Err(Error::DuplicateKey {
+                    existing: var.defined.clone(),
+                    found: key.span,
+                }),
+                None => Ok(()),
             }
         }
     }
 }
 
-fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value, Error<L>> {
+fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value<L>, Error<L>> {
     match expr.kind {
         ExpressionKind::Literal(Literal::Character(c)) => Ok(Value::Character(c)),
         ExpressionKind::Literal(Literal::String(s)) => Ok(Value::String(s)),
@@ -74,17 +135,30 @@ fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value, Error<L>> {
                 .collect::<Result<Vec<_>, _>>()?,
         )),
         ExpressionKind::InlineTable(arr) => {
-            let mut table = HashMap::with_capacity(arr.len());
+            let mut table = Table::new();
             for (key, expr) in arr {
-                let span = key.span.clone();
-                if let Some(name) = key_to_str(key)? {
-                    if table.contains_key(&name) {
-                        return Err(Error {
-                            msg: "This key is already used.",
-                            span,
-                        });
+                let global = match key_kind(key.kind) {
+                    Some(b) => b,
+                    None => {
+                        return Err(Error::NotSupported {
+                            feature: "built-in keys",
+                            span: key.span,
+                        })
                     }
-                    table.insert(name, expr_to_value(expr)?);
+                };
+                if let Some(var) = table.insert(
+                    global,
+                    key.name,
+                    Variable {
+                        value: expr_to_value(expr)?,
+                        defined: key.span.clone(),
+                        used: global,
+                    },
+                ) {
+                    return Err(Error::DuplicateKey {
+                        existing: var.defined.clone(),
+                        found: key.span,
+                    });
                 }
             }
             Ok(Value::Table(table))
@@ -92,13 +166,10 @@ fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value, Error<L>> {
     }
 }
 
-fn key_to_str<L>(key: Key<L>) -> Result<Option<String>, Error<L>> {
-    match key.kind {
-        KeyKind::Normal => Ok(Some(key.name)),
-        KeyKind::Local => Ok(None),
-        KeyKind::Builtin => Err(Error {
-            msg: "Built-in keys are not supported yet.",
-            span: key.span,
-        }),
+fn key_kind(kind: KeyKind) -> Option<bool> {
+    match kind {
+        KeyKind::Normal => Some(true),
+        KeyKind::Local => Some(false),
+        KeyKind::Builtin => None,
     }
 }
