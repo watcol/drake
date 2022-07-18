@@ -89,6 +89,9 @@ dependencies = [
 [[package]]
 name = "drake-types"
 version = "0.0.1"
+dependencies = [
+ "hashbrown",
+]
 
 [[package]]
 name = "futures-core"

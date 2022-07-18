@@ -3,78 +3,10 @@ extern crate alloc;
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::ops::Range;
 use drake_types::ast::{
     Expression, ExpressionKind, KeyKind, Literal, Pattern, PatternKind, Statement, StatementKind,
 };
-use hashbrown::HashMap;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Value<L> {
-    Character(char),
-    String(String),
-    Integer(u64),
-    Float(f64),
-    Array(Vec<Value<L>>),
-    Table(Table<L>),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Variable<L> {
-    pub value: Value<L>,
-    pub defined: Range<L>,
-    pub used: bool,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Table<L> {
-    pub global: HashMap<String, Variable<L>>,
-    pub local: HashMap<String, Variable<L>>,
-}
-
-impl<L> Default for Table<L> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            global: HashMap::new(),
-            local: HashMap::new(),
-        }
-    }
-}
-
-impl<L> Table<L> {
-    #[inline]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn insert(&mut self, global: bool, key: String, var: Variable<L>) -> Option<&Variable<L>> {
-        let table = if global {
-            &mut self.global
-        } else {
-            &mut self.local
-        };
-
-        if table.contains_key(&key) {
-            Some(&table[&key])
-        } else {
-            table.insert(key, var);
-            None
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Error<L> {
-    DuplicateKey {
-        existing: Range<L>,
-        found: Range<L>,
-    },
-    NotSupported {
-        feature: &'static str,
-        span: Range<L>,
-    },
-}
+use drake_types::runtime::{Error, Table, Value, Variable};
 
 pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Result<Value<L>, Error<L>> {
     let mut root = Table::new();
@@ -104,7 +36,8 @@ fn bind<L: Clone>(
                     })
                 }
             };
-            match table.insert(
+            match table_insert(
+                table,
                 global,
                 key.name,
                 Variable {
@@ -146,7 +79,8 @@ fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value<L>, Error<L>> {
                         })
                     }
                 };
-                if let Some(var) = table.insert(
+                if let Some(var) = table_insert(
+                    &mut table,
                     global,
                     key.name,
                     Variable {
@@ -163,6 +97,26 @@ fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value<L>, Error<L>> {
             }
             Ok(Value::Table(table))
         }
+    }
+}
+
+fn table_insert<L>(
+    table: &mut Table<L>,
+    global: bool,
+    key: String,
+    var: Variable<L>,
+) -> Option<&Variable<L>> {
+    let table = if global {
+        &mut table.global
+    } else {
+        &mut table.local
+    };
+
+    if table.contains_key(&key) {
+        Some(&table[&key])
+    } else {
+        table.insert(key, var);
+        None
     }
 }
 
