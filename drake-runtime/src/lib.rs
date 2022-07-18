@@ -7,8 +7,9 @@ use core::ops::Range;
 use drake_types::ast::{
     Expression, ExpressionKind, KeyKind, Literal, Pattern, PatternKind, Statement, StatementKind,
 };
-use drake_types::runtime::{Table, Value, Variable};
+use drake_types::runtime::{Element, Table, Value};
 
+/// Errors for runtimes
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error<L> {
     DuplicateKey {
@@ -21,6 +22,7 @@ pub enum Error<L> {
     },
 }
 
+/// Evaluates an AST to a value.
 pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Result<Value<L>, Error<L>> {
     let mut root = Table::new();
     let current_table = &mut root;
@@ -53,7 +55,7 @@ fn bind<L: Clone>(
                 table,
                 global,
                 key.name,
-                Variable {
+                Element {
                     value: expr_to_value(expr)?,
                     defined: key.span.clone(),
                     used: global,
@@ -96,7 +98,7 @@ fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value<L>, Error<L>> {
                     &mut table,
                     global,
                     key.name,
-                    Variable {
+                    Element {
                         value: expr_to_value(expr)?,
                         defined: key.span.clone(),
                         used: global,
@@ -117,8 +119,8 @@ fn table_insert<L>(
     table: &mut Table<L>,
     global: bool,
     key: String,
-    var: Variable<L>,
-) -> Option<&Variable<L>> {
+    elem: Element<L>,
+) -> Option<&Element<L>> {
     let table = if global {
         &mut table.global
     } else {
@@ -128,7 +130,7 @@ fn table_insert<L>(
     if table.contains_key(&key) {
         Some(&table[&key])
     } else {
-        table.insert(key, var);
+        table.insert(key, elem);
         None
     }
 }
