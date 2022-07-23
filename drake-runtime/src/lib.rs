@@ -23,75 +23,78 @@ pub enum Error<L> {
 }
 
 /// Evaluates an AST to a value.
-pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Result<Value<L>, Error<L>> {
+pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>, errors: &mut Vec<Error<L>>) -> Value<L> {
     let mut root = Table::new();
     let current_table = &mut root;
     for stmt in ast {
         match stmt.kind {
-            StatementKind::ValueBinding(pat, expr) => bind(current_table, pat, expr)?,
+            StatementKind::ValueBinding(pat, expr) => bind(current_table, pat, expr, errors),
             StatementKind::TableHeader(_, _, _) => unimplemented!(),
         }
     }
-    Ok(Value::Table(root))
+    Value::Table(root)
 }
 
 fn bind<L: Clone>(
     table: &mut Table<L>,
     pat: Pattern<L>,
     expr: Expression<L>,
-) -> Result<(), Error<L>> {
+    errors: &mut Vec<Error<L>>,
+) {
     match pat.kind {
         PatternKind::Key(key) => {
             let global = match key_kind(key.kind) {
                 Some(b) => b,
                 None => {
-                    return Err(Error::NotSupported {
+                    errors.push(Error::NotSupported {
                         feature: "built-in keys",
                         span: key.span,
-                    })
+                    });
+                    return;
                 }
             };
-            match table_insert(
+
+            if let Some(var) = table_insert(
                 table,
                 global,
                 key.name,
                 Element {
-                    value: expr_to_value(expr)?,
+                    value: expr_to_value(expr, errors),
                     defined: key.span.clone(),
                     used: global,
                 },
             ) {
-                Some(var) => Err(Error::DuplicateKey {
+                errors.push(Error::DuplicateKey {
                     existing: var.defined.clone(),
                     found: key.span,
-                }),
-                None => Ok(()),
+                })
             }
         }
     }
 }
 
-fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value<L>, Error<L>> {
+fn expr_to_value<L: Clone>(expr: Expression<L>, errors: &mut Vec<Error<L>>) -> Value<L> {
     match expr.kind {
-        ExpressionKind::Literal(Literal::Character(c)) => Ok(Value::Character(c)),
-        ExpressionKind::Literal(Literal::String(s)) => Ok(Value::String(s)),
-        ExpressionKind::Literal(Literal::Integer(i)) => Ok(Value::Integer(i)),
-        ExpressionKind::Literal(Literal::Float(f)) => Ok(Value::Float(f)),
-        ExpressionKind::Array(arr) => Ok(Value::Array(
+        ExpressionKind::Literal(Literal::Character(c)) => Value::Character(c),
+        ExpressionKind::Literal(Literal::String(s)) => Value::String(s),
+        ExpressionKind::Literal(Literal::Integer(i)) => Value::Integer(i),
+        ExpressionKind::Literal(Literal::Float(f)) => Value::Float(f),
+        ExpressionKind::Array(arr) => Value::Array(
             arr.into_iter()
-                .map(expr_to_value)
-                .collect::<Result<Vec<_>, _>>()?,
-        )),
+                .map(|elem| expr_to_value(elem, errors))
+                .collect(),
+        ),
         ExpressionKind::InlineTable(arr) => {
             let mut table = Table::new();
             for (key, expr) in arr {
                 let global = match key_kind(key.kind) {
                     Some(b) => b,
                     None => {
-                        return Err(Error::NotSupported {
+                        errors.push(Error::NotSupported {
                             feature: "built-in keys",
                             span: key.span,
-                        })
+                        });
+                        continue;
                     }
                 };
                 if let Some(var) = table_insert(
@@ -99,18 +102,18 @@ fn expr_to_value<L: Clone>(expr: Expression<L>) -> Result<Value<L>, Error<L>> {
                     global,
                     key.name,
                     Element {
-                        value: expr_to_value(expr)?,
+                        value: expr_to_value(expr, errors),
                         defined: key.span.clone(),
                         used: global,
                     },
                 ) {
-                    return Err(Error::DuplicateKey {
+                    errors.push(Error::DuplicateKey {
                         existing: var.defined.clone(),
                         found: key.span,
                     });
                 }
             }
-            Ok(Value::Table(table))
+            Value::Table(table)
         }
     }
 }
