@@ -247,11 +247,7 @@ fn expr_to_value<L: Clone>(
     (val, expr.span)
 }
 
-fn assert_table<L: Clone>(
-    val: Value<L>,
-    span: Range<L>,
-    errors: &mut Vec<Error<L>>,
-) -> Option<Table<L>> {
+fn assert_table<L>(val: Value<L>, span: Range<L>, errors: &mut Vec<Error<L>>) -> Option<Table<L>> {
     match val {
         Value::Table(table) => Some(table),
         val => {
