@@ -7,8 +7,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Range;
 use drake_types::ast::{
-    Expression, ExpressionKind, KeyKind, Literal, Pattern, PatternKind, Statement, StatementKind,
-    TableHeaderKind,
+    Expression, ExpressionKind, Key, KeyKind, Literal, Pattern, PatternKind, Statement,
+    StatementKind, TableHeaderKind,
 };
 use drake_types::runtime::{Element, Table, Value};
 
@@ -60,18 +60,19 @@ impl Kind {
 
 struct Cursor<L> {
     kind: CursorKind<L>,
-    global: bool,
-    key: String,
-    origin: Option<(Box<Cursor<L>>, Range<L>)>,
+    origin: Option<(Box<Cursor<L>>, Key<L>)>,
 }
 
 impl<L: Clone> Cursor<L> {
-    fn as_mut_table(&mut self) -> Option<&mut Table<L>> {
+    fn as_mut_table(&mut self, errors: &mut Vec<Error<L>>) -> Option<&mut Table<L>> {
         match self.kind {
             CursorKind::Table(ref mut table) => Some(table),
             CursorKind::Array(ref mut tables) => match tables.last_mut() {
                 Some(Value::Table(ref mut table)) => Some(table),
-                _ => None,
+                _ => {
+                    errors.push(Error::Unexpected);
+                    None
+                }
             },
         }
     }
@@ -79,8 +80,6 @@ impl<L: Clone> Cursor<L> {
     fn new_root() -> Self {
         Self {
             kind: CursorKind::Table(Table::new()),
-            global: true,
-            key: String::from("<root>"),
             origin: None,
         }
     }
@@ -88,63 +87,47 @@ impl<L: Clone> Cursor<L> {
     fn new_table(
         self: Box<Self>,
         kind: TableHeaderKind,
-        global: bool,
-        key: String,
-        span: Range<L>,
-        default: Option<(Value<L>, Range<L>)>,
+        key: Key<L>,
+        default: Option<Expression<L>>,
         errors: &mut Vec<Error<L>>,
     ) -> Self {
         match kind {
             TableHeaderKind::Normal => {
                 let table = match default {
-                    Some((Value::Table(table), _)) => table,
-                    Some((val, default_span)) => {
-                        errors.push(Error::KindMismatch {
-                            expect: vec![Kind::Table],
-                            found: Kind::from_value(&val),
-                            span: default_span,
-                        });
-                        Table::new()
-                    }
+                    Some(expr) => expr_to_table(expr, errors).unwrap_or_default(),
                     None => Table::new(),
                 };
                 Self {
                     kind: CursorKind::Table(table),
-                    global,
-                    key,
-                    origin: Some((self.bind(errors), span)),
+                    origin: Some((self.bind(errors), key)),
                 }
             }
-            TableHeaderKind::Array if global == self.global && key == self.key => match self.kind {
-                CursorKind::Table(_) => self
-                    .bind(errors)
-                    .new_table(kind, global, key, span, default, errors),
-                CursorKind::Array(mut arr) => {
-                    if let Some((_, default_span)) = default {
-                        errors.push(Error::UnallowedDefaultValue { span: default_span });
-                    }
+            TableHeaderKind::Array
+                if self
+                    .origin
+                    .as_ref()
+                    .map(|(_, org_key)| key.kind == org_key.kind && key.name == key.name)
+                    .unwrap_or_default() =>
+            {
+                match self.kind {
+                    CursorKind::Table(_) => self.bind(errors).new_table(kind, key, default, errors),
+                    CursorKind::Array(mut arr) => {
+                        if let Some(expr) = default {
+                            errors.push(Error::UnallowedDefaultValue { span: expr.span });
+                        }
 
-                    arr.push(Value::Table(Table::new()));
+                        arr.push(Value::Table(Table::new()));
 
-                    Self {
-                        kind: CursorKind::Array(arr),
-                        global,
-                        key,
-                        origin: self.origin,
+                        Self {
+                            kind: CursorKind::Array(arr),
+                            origin: self.origin,
+                        }
                     }
                 }
-            },
+            }
             TableHeaderKind::Array => {
                 let mut arr = match default {
-                    Some((Value::Array(arr), _)) => arr,
-                    Some((val, default_span)) => {
-                        errors.push(Error::KindMismatch {
-                            expect: vec![Kind::Array],
-                            found: Kind::from_value(&val),
-                            span: default_span,
-                        });
-                        Vec::new()
-                    }
+                    Some(expr) => expr_to_array(expr, errors).unwrap_or_default(),
                     None => Vec::new(),
                 };
 
@@ -152,9 +135,7 @@ impl<L: Clone> Cursor<L> {
 
                 Self {
                     kind: CursorKind::Array(arr),
-                    global,
-                    key,
-                    origin: Some((self.bind(errors), span)),
+                    origin: Some((self.bind(errors), key)),
                 }
             }
         }
@@ -162,26 +143,9 @@ impl<L: Clone> Cursor<L> {
 
     fn bind(self: Box<Self>, errors: &mut Vec<Error<L>>) -> Box<Self> {
         match self.origin {
-            Some((mut new, span)) => {
-                match new.as_mut_table() {
-                    Some(t) => {
-                        if let Some(var) = table_insert(
-                            t,
-                            self.global,
-                            self.key,
-                            Element {
-                                value: self.kind.into_value(),
-                                defined: span.clone(),
-                                used: self.global,
-                            },
-                        ) {
-                            errors.push(Error::DuplicateKey {
-                                existing: var.defined.clone(),
-                                found: span,
-                            })
-                        }
-                    }
-                    None => errors.push(Error::Unexpected),
+            Some((mut new, key)) => {
+                if let Some(t) = new.as_mut_table(errors) {
+                    table_insert(t, key, self.kind.into_value(), errors);
                 }
                 new
             }
@@ -209,9 +173,9 @@ pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>, errors: &mut Vec<Error<L>>) ->
     let mut cursor = Box::new(Cursor::new_root());
     for stmt in ast {
         match stmt.kind {
-            StatementKind::ValueBinding(pat, expr) => match cursor.as_mut_table() {
+            StatementKind::ValueBinding(pat, expr) => match cursor.as_mut_table(errors) {
                 Some(t) => bind(t, pat, expr, errors),
-                None => errors.push(Error::Unexpected),
+                None => continue,
             },
             StatementKind::TableHeader(kind, pat, default) => {
                 header(&mut cursor, kind, pat, default, errors)
@@ -229,31 +193,12 @@ fn header<L: Clone>(
     default: Option<Expression<L>>,
     errors: &mut Vec<Error<L>>,
 ) {
-    let (global, key, span) = match pat.kind {
-        PatternKind::Key(key) => match key_kind(key.kind) {
-            Some(b) => (b, key.name, key.span),
-            None => {
-                errors.push(Error::NotSupported {
-                    feature: "built-in keys",
-                    span: key.span,
-                });
-                return;
-            }
+    match pat.kind {
+        PatternKind::Key(key) => unsafe {
+            use core::ptr;
+            let cur = ptr::read(cursor);
+            ptr::write(cursor, Box::new(cur.new_table(kind, key, default, errors)))
         },
-    };
-
-    let default = default.map(|expr| {
-        let span = expr.span.clone();
-        (expr_to_value(expr, errors), span)
-    });
-
-    unsafe {
-        use core::ptr;
-        let cur = ptr::read(cursor);
-        ptr::write(
-            cursor,
-            Box::new(cur.new_table(kind, global, key, span, default, errors)),
-        )
     }
 }
 
@@ -263,107 +208,108 @@ fn bind<L: Clone>(
     expr: Expression<L>,
     errors: &mut Vec<Error<L>>,
 ) {
+    let val = expr_to_value(expr.kind, errors);
     match pat.kind {
-        PatternKind::Key(key) => {
-            let global = match key_kind(key.kind) {
-                Some(b) => b,
-                None => {
-                    errors.push(Error::NotSupported {
-                        feature: "built-in keys",
-                        span: key.span,
-                    });
-                    return;
-                }
-            };
-
-            if let Some(var) = table_insert(
-                table,
-                global,
-                key.name,
-                Element {
-                    value: expr_to_value(expr, errors),
-                    defined: key.span.clone(),
-                    used: global,
-                },
-            ) {
-                errors.push(Error::DuplicateKey {
-                    existing: var.defined.clone(),
-                    found: key.span,
-                })
-            }
-        }
+        PatternKind::Key(key) => table_insert(table, key, val, errors),
     }
 }
 
-fn expr_to_value<L: Clone>(expr: Expression<L>, errors: &mut Vec<Error<L>>) -> Value<L> {
-    match expr.kind {
+fn expr_to_value<L: Clone>(expr: ExpressionKind<L>, errors: &mut Vec<Error<L>>) -> Value<L> {
+    match expr {
         ExpressionKind::Literal(Literal::Character(c)) => Value::Character(c),
         ExpressionKind::Literal(Literal::String(s)) => Value::String(s),
         ExpressionKind::Literal(Literal::Integer(i)) => Value::Integer(i),
         ExpressionKind::Literal(Literal::Float(f)) => Value::Float(f),
         ExpressionKind::Array(arr) => Value::Array(
             arr.into_iter()
-                .map(|elem| expr_to_value(elem, errors))
+                .map(|elem| expr_to_value(elem.kind, errors))
                 .collect(),
         ),
         ExpressionKind::InlineTable(arr) => {
             let mut table = Table::new();
             for (key, expr) in arr {
-                let global = match key_kind(key.kind) {
-                    Some(b) => b,
-                    None => {
-                        errors.push(Error::NotSupported {
-                            feature: "built-in keys",
-                            span: key.span,
-                        });
-                        continue;
-                    }
-                };
-                if let Some(var) = table_insert(
-                    &mut table,
-                    global,
-                    key.name,
-                    Element {
-                        value: expr_to_value(expr, errors),
-                        defined: key.span.clone(),
-                        used: global,
-                    },
-                ) {
-                    errors.push(Error::DuplicateKey {
-                        existing: var.defined.clone(),
-                        found: key.span,
-                    });
-                }
+                table_insert(&mut table, key, expr_to_value(expr.kind, errors), errors);
             }
             Value::Table(table)
         }
     }
 }
 
-fn table_insert<L>(
+fn expr_to_table<L: Clone>(expr: Expression<L>, errors: &mut Vec<Error<L>>) -> Option<Table<L>> {
+    match expr_to_value(expr.kind, errors) {
+        Value::Table(table) => Some(table),
+        val => {
+            errors.push(Error::KindMismatch {
+                expect: vec![Kind::Table],
+                found: Kind::from_value(&val),
+                span: expr.span,
+            });
+            None
+        }
+    }
+}
+
+fn expr_to_array<L: Clone>(
+    expr: Expression<L>,
+    errors: &mut Vec<Error<L>>,
+) -> Option<Vec<Value<L>>> {
+    match expr_to_value(expr.kind, errors) {
+        Value::Array(arr) => Some(arr),
+        val => {
+            errors.push(Error::KindMismatch {
+                expect: vec![Kind::Array],
+                found: Kind::from_value(&val),
+                span: expr.span,
+            });
+            None
+        }
+    }
+}
+
+fn table_insert<L: Clone>(
     table: &mut Table<L>,
-    global: bool,
-    key: String,
-    elem: Element<L>,
-) -> Option<&Element<L>> {
+    key: Key<L>,
+    value: Value<L>,
+    errors: &mut Vec<Error<L>>,
+) {
+    let (global, name, span) = match key_destruct(key, errors) {
+        Some(key) => key,
+        None => return,
+    };
+
     let table = if global {
         &mut table.global
     } else {
         &mut table.local
     };
 
-    if table.contains_key(&key) {
-        Some(&table[&key])
+    if table.contains_key(&name) {
+        errors.push(Error::DuplicateKey {
+            existing: table[&name].defined.clone(),
+            found: span,
+        });
     } else {
-        table.insert(key, elem);
-        None
+        table.insert(
+            name,
+            Element {
+                value,
+                defined: span,
+                used: global,
+            },
+        );
     }
 }
 
-fn key_kind(kind: KeyKind) -> Option<bool> {
-    match kind {
-        KeyKind::Normal => Some(true),
-        KeyKind::Local => Some(false),
-        KeyKind::Builtin => None,
+fn key_destruct<L>(key: Key<L>, errors: &mut Vec<Error<L>>) -> Option<(bool, String, Range<L>)> {
+    match key.kind {
+        KeyKind::Normal => Some((true, key.name, key.span)),
+        KeyKind::Local => Some((false, key.name, key.span)),
+        KeyKind::Builtin => {
+            errors.push(Error::NotSupported {
+                feature: "built-in keys",
+                span: key.span,
+            });
+            None
+        }
     }
 }
