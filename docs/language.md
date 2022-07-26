@@ -501,7 +501,6 @@ key = "foo"
 Built-in key pattern is a pattern to access values integrated with a transpiler,
 starts with a commercial at (`@`, `U+0040`),
 
-
 - `@output` ... A [string](#string) to specify destination path to output a
                 transpiled source. Write only.
 - `@type`   ... A [string](#string) to specify file type to transpile.
@@ -512,6 +511,7 @@ starts with a commercial at (`@`, `U+0040`),
 - `@inf`    ... A [float](#float) expresses positive infinity. Read only.
 - `@true`   ... A [boolean](#boolean) expresses true. Read only.
 - `@false`  ... A [boolean](#boolean) expresses false. Read only.
+- `@null`   ... A [null](#null) value. Read only.
 
 Note that these values are file-specific, and independent from the root
 scope.
