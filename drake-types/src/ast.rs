@@ -48,6 +48,8 @@ pub struct Pattern<L> {
 pub enum PatternKind<L> {
     /// A key pattern
     Key(Key<L>),
+    /// A built-in pattern
+    Builtin(Key<L>),
 }
 
 /// Keys
@@ -154,13 +156,17 @@ impl<L> fmt::Display for Pattern<L> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
             PatternKind::Key(ref key) => key.fmt(f),
+            PatternKind::Builtin(ref key) => write!(f, "@{key}"),
         }
     }
 }
 
 impl<L> fmt::Display for Key<L> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.name.fmt(f)
+        match self.kind {
+            KeyKind::Normal => self.name.fmt(f),
+            KeyKind::Local => write!(f, "_{}", self.name),
+        }
     }
 }
 
