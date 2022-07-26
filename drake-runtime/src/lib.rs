@@ -5,10 +5,10 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Range;
 use drake_types::ast::{
-    Expression, ExpressionKind, Literal, Pattern, PatternKind, Statement, StatementKind,
-    TableHeaderKind,
+    Expression, ExpressionKind, Key, KeyKind, Literal, Pattern, PatternKind, Statement,
+    StatementKind, TableHeaderKind,
 };
-use drake_types::runtime::{Builtin, Error, Kind, Snapshot, Table, Value};
+use drake_types::runtime::{Builtin, Element, Error, Kind, Snapshot, Table, Value};
 
 #[derive(Clone, Debug, PartialEq)]
 struct Environment<L> {
@@ -45,21 +45,14 @@ impl<L: Clone> Environment<L> {
                     None => &mut self.root,
                 };
 
-                if let Err(err) = table.insert(key, value) {
-                    self.errors.push(err);
-                }
+                insert(table, key, value, &mut self.errors);
             }
-            PatternKind::Builtin(key) => {
-                if let Err(err) = self.builtin.write(key, value) {
-                    self.errors.push(err);
-                }
-            }
+            PatternKind::Builtin(key) => self.builtin_write(key, value),
             _ => {
                 self.errors.push(Error::NotSupported {
                     feature: "unknown pattern",
                     span: pattern.span,
                 });
-                return;
             }
         };
     }
@@ -95,6 +88,39 @@ impl<L: Clone> Environment<L> {
             }
         } else {
             self.current = Some(Current::new(kind, pattern, default));
+        }
+    }
+
+    fn builtin_write(&mut self, key: Key<L>, value: Value<L>) {
+        if key.kind != KeyKind::Normal {
+            self.errors.push(Error::BuiltinNotFound { span: key.span });
+            return;
+        }
+
+        match key.name.as_str() {
+            "output" => {
+                if let Value::String(s) = value {
+                    self.builtin.output = Some(s);
+                } else {
+                    self.errors.push(Error::KindMismatch {
+                        expect: vec![Kind::String],
+                        found: value.kind(),
+                        span: key.span,
+                    })
+                }
+            }
+            "filetype" => {
+                if let Value::String(s) = value {
+                    self.builtin.filetype = Some(s);
+                } else {
+                    self.errors.push(Error::KindMismatch {
+                        expect: vec![Kind::String],
+                        found: value.kind(),
+                        span: key.span,
+                    });
+                }
+            }
+            _ => self.errors.push(Error::BuiltinNotFound { span: key.span }),
         }
     }
 
@@ -205,9 +231,7 @@ fn expr_to_value<L: Clone>(
         ExpressionKind::InlineTable(arr) => {
             let mut table = Table::new();
             for (key, expr) in arr {
-                if let Err(err) = table.insert(key, expr_to_value(expr, errors).0) {
-                    errors.push(err);
-                }
+                insert(&mut table, key, expr_to_value(expr, errors).0, errors);
             }
             Value::Table(table)
         }
@@ -238,5 +262,41 @@ fn assert_table<L: Clone>(
             });
             None
         }
+    }
+}
+
+fn insert<L: Clone>(
+    table: &mut Table<L>,
+    key: Key<L>,
+    value: Value<L>,
+    errors: &mut Vec<Error<L>>,
+) {
+    let (table, used) = match key.kind {
+        KeyKind::Normal => (&mut table.global, true),
+        KeyKind::Local => (&mut table.global, false),
+        _ => {
+            errors.push(Error::NotSupported {
+                feature: "unknown keys",
+                span: key.span,
+            });
+            return;
+        }
+    };
+
+    if table.contains_key(&key.name) && !table[&key.name].default {
+        errors.push(Error::DuplicateKey {
+            existing: table[&key.name].defined.clone(),
+            found: key.span,
+        });
+    } else {
+        table.insert(
+            key.name,
+            Element {
+                value,
+                defined: key.span,
+                default: false,
+                used,
+            },
+        );
     }
 }

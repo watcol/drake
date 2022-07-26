@@ -1,7 +1,5 @@
 //! Types for runtimes
-use crate::ast::{Key, KeyKind};
 use alloc::string::String;
-use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Range;
 use hashbrown::HashMap;
@@ -79,42 +77,6 @@ pub struct Builtin {
     pub filetype: Option<String>,
 }
 
-impl Builtin {
-    pub fn write<L>(&mut self, key: Key<L>, value: Value<L>) -> Result<(), Error<L>> {
-        if key.kind != KeyKind::Normal {
-            return Err(Error::BuiltinNotFound { span: key.span });
-        }
-
-        match key.name.as_str() {
-            "output" => {
-                if let Value::String(s) = value {
-                    self.output = Some(s);
-                    Ok(())
-                } else {
-                    Err(Error::KindMismatch {
-                        expect: vec![Kind::String],
-                        found: value.kind(),
-                        span: key.span,
-                    })
-                }
-            }
-            "filetype" => {
-                if let Value::String(s) = value {
-                    self.filetype = Some(s);
-                    Ok(())
-                } else {
-                    Err(Error::KindMismatch {
-                        expect: vec![Kind::String],
-                        found: value.kind(),
-                        span: key.span,
-                    })
-                }
-            }
-            _ => Err(Error::BuiltinNotFound { span: key.span }),
-        }
-    }
-}
-
 impl<L> Default for Table<L> {
     #[inline]
     fn default() -> Self {
@@ -138,35 +100,6 @@ impl<L> Table<L> {
             .values_mut()
             .chain(self.local.values_mut())
             .for_each(|elem| elem.default = true);
-    }
-
-    /// Inserts an element
-    pub fn insert(&mut self, key: Key<L>, value: Value<L>) -> Result<(), Error<L>>
-    where
-        L: Clone,
-    {
-        let (table, used) = match key.kind {
-            KeyKind::Normal => (&mut self.global, true),
-            KeyKind::Local => (&mut self.global, false),
-        };
-
-        if table.contains_key(&key.name) && !table[&key.name].default {
-            Err(Error::DuplicateKey {
-                existing: table[&key.name].defined.clone(),
-                found: key.span,
-            })
-        } else {
-            table.insert(
-                key.name,
-                Element {
-                    value,
-                    defined: key.span,
-                    default: false,
-                    used,
-                },
-            );
-            Ok(())
-        }
     }
 }
 
