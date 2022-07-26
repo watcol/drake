@@ -66,3 +66,57 @@ impl<L> Table<L> {
         self.local.values_mut().for_each(|elem| elem.default = true);
     }
 }
+
+/// Snapshots for the runtime.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Snapshot<L> {
+    pub root: Table<L>,
+    pub errors: Vec<Error<L>>,
+}
+
+/// Errors for runtimes
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Error<L> {
+    DuplicateKey {
+        existing: Range<L>,
+        found: Range<L>,
+    },
+    KindMismatch {
+        expect: Vec<Kind>,
+        found: Kind,
+        span: Range<L>,
+    },
+    UnallowedDefaultValue {
+        span: Range<L>,
+    },
+    NotSupported {
+        feature: &'static str,
+        span: Range<L>,
+    },
+    Unexpected,
+}
+
+/// Name of value kinds for errors.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Kind {
+    Character,
+    String,
+    Integer,
+    Float,
+    Array,
+    Table,
+}
+
+impl Kind {
+    /// Evaluates a kind from the value.
+    pub fn from_value<L>(val: &Value<L>) -> Self {
+        match val {
+            Value::Character(_) => Self::Character,
+            Value::String(_) => Self::String,
+            Value::Integer(_) => Self::Integer,
+            Value::Float(_) => Self::Float,
+            Value::Array(_) => Self::Array,
+            Value::Table(_) => Self::Table,
+        }
+    }
+}
