@@ -8,11 +8,12 @@ use drake_types::ast::{
     Expression, ExpressionKind, Literal, Pattern, PatternKind, Statement, StatementKind,
     TableHeaderKind,
 };
-use drake_types::runtime::{Error, Kind, Snapshot, Table, Value};
+use drake_types::runtime::{Builtin, Error, Kind, Snapshot, Table, Value};
 
 #[derive(Clone, Debug, PartialEq)]
 struct Environment<L> {
     root: Table<L>,
+    builtin: Builtin,
     current: Option<Current<L>>,
     errors: Vec<Error<L>>,
 }
@@ -22,6 +23,7 @@ impl<L> Default for Environment<L> {
     fn default() -> Self {
         Self {
             root: Table::new(),
+            builtin: Builtin::default(),
             current: None,
             errors: Vec::new(),
         }
@@ -30,9 +32,9 @@ impl<L> Default for Environment<L> {
 
 impl<L: Clone> Environment<L> {
     fn bind(&mut self, pattern: Pattern<L>, value: Value<L>) {
-        let (table, key) = match pattern.kind {
-            PatternKind::Key(key) => (
-                match self.current {
+        match pattern.kind {
+            PatternKind::Key(key) => {
+                let table = match self.current {
                     Some(ref mut cur) => match cur.value.as_mut_table() {
                         Some(table) => table,
                         None => {
@@ -41,9 +43,17 @@ impl<L: Clone> Environment<L> {
                         }
                     },
                     None => &mut self.root,
-                },
-                key,
-            ),
+                };
+
+                if let Err(err) = table.insert(key, value) {
+                    self.errors.push(err);
+                }
+            }
+            PatternKind::Builtin(key) => {
+                if let Err(err) = self.builtin.write(key, value) {
+                    self.errors.push(err);
+                }
+            }
             _ => {
                 self.errors.push(Error::NotSupported {
                     feature: "unknown pattern",
@@ -52,10 +62,6 @@ impl<L: Clone> Environment<L> {
                 return;
             }
         };
-
-        if let Err(err) = table.insert(key, value) {
-            self.errors.push(err);
-        }
     }
 
     fn header(
@@ -99,6 +105,7 @@ impl<L: Clone> Environment<L> {
 
         Snapshot {
             root: self.root,
+            builtin: self.builtin,
             errors: self.errors,
         }
     }

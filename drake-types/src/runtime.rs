@@ -1,6 +1,7 @@
 //! Types for runtimes
 use crate::ast::{Key, KeyKind};
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Range;
 use hashbrown::HashMap;
@@ -9,6 +10,7 @@ use hashbrown::HashMap;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Snapshot<L> {
     pub root: Table<L>,
+    pub builtin: Builtin,
     pub errors: Vec<Error<L>>,
 }
 
@@ -69,6 +71,48 @@ pub enum Kind {
 pub struct Table<L> {
     pub global: HashMap<String, Element<L>>,
     pub local: HashMap<String, Element<L>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Default, Eq)]
+pub struct Builtin {
+    output: Option<String>,
+    filetype: Option<String>,
+}
+
+impl Builtin {
+    pub fn write<L>(&mut self, key: Key<L>, value: Value<L>) -> Result<(), Error<L>> {
+        if key.kind != KeyKind::Normal {
+            return Err(Error::BuiltinNotFound { span: key.span });
+        }
+
+        match key.name.as_str() {
+            "output" => {
+                if let Value::String(s) = value {
+                    self.output = Some(s);
+                    Ok(())
+                } else {
+                    Err(Error::KindMismatch {
+                        expect: vec![Kind::String],
+                        found: value.kind(),
+                        span: key.span,
+                    })
+                }
+            }
+            "filetype" => {
+                if let Value::String(s) = value {
+                    self.filetype = Some(s);
+                    Ok(())
+                } else {
+                    Err(Error::KindMismatch {
+                        expect: vec![Kind::String],
+                        found: value.kind(),
+                        span: key.span,
+                    })
+                }
+            }
+            _ => Err(Error::BuiltinNotFound { span: key.span }),
+        }
+    }
 }
 
 impl<L> Default for Table<L> {
@@ -150,6 +194,9 @@ pub enum Error<L> {
     KindMismatch {
         expect: Vec<Kind>,
         found: Kind,
+        span: Range<L>,
+    },
+    BuiltinNotFound {
         span: Range<L>,
     },
     UnallowedDefaultValue {
