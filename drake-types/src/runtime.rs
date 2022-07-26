@@ -24,12 +24,15 @@ pub enum Value<L> {
     Integer(u64),
     /// A literal float
     Float(f64),
+    /// A boolean
+    Boolean(bool),
+    /// A null
+    Null,
     /// An array
     Array(Vec<Value<L>>),
     /// A table
     Table(Table<L>),
 }
-
 
 impl<L> Value<L> {
     /// Returns a kind of the value
@@ -39,6 +42,8 @@ impl<L> Value<L> {
             Self::String(_) => Kind::String,
             Self::Integer(_) => Kind::Integer,
             Self::Float(_) => Kind::Float,
+            Self::Boolean(_) => Kind::Boolean,
+            Self::Null => Kind::Null,
             Self::Array(_) => Kind::Array,
             Self::Table(_) => Kind::Table,
         }
@@ -53,6 +58,8 @@ pub enum Kind {
     String,
     Integer,
     Float,
+    Boolean,
+    Null,
     Array,
     Table,
 }
@@ -90,21 +97,30 @@ impl<L> Table<L> {
     }
 
     /// Inserts an element
-    pub fn insert(&mut self, key: Key<L>, value: Value<L>) -> Result<(), Error<L>> where L: Clone {
+    pub fn insert(&mut self, key: Key<L>, value: Value<L>) -> Result<(), Error<L>>
+    where
+        L: Clone,
+    {
         let (table, used) = match key.kind {
             KeyKind::Normal => (&mut self.global, true),
             KeyKind::Local => (&mut self.global, false),
         };
 
         if table.contains_key(&key.name) && !table[&key.name].default {
-            Err(Error::DuplicateKey { existing: table[&key.name].defined.clone(), found: key.span })
+            Err(Error::DuplicateKey {
+                existing: table[&key.name].defined.clone(),
+                found: key.span,
+            })
         } else {
-            table.insert(key.name, Element {
-                value,
-                defined: key.span,
-                default: false,
-                used,
-            });
+            table.insert(
+                key.name,
+                Element {
+                    value,
+                    defined: key.span,
+                    default: false,
+                    used,
+                },
+            );
             Ok(())
         }
     }
