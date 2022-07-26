@@ -58,11 +58,30 @@ impl<L: Clone> Environment<L> {
         }
     }
 
-    fn header(&mut self, kind: TableHeaderKind, pattern: Pattern<L>, mut default: Table<L>) {
+    fn header(
+        &mut self,
+        kind: TableHeaderKind,
+        pattern: Pattern<L>,
+        default: Option<Expression<L>>,
+    ) {
+        let (mut default, default_span) = default
+            .map(|expr| {
+                let (val, span) = expr_to_value(expr, &mut self.errors);
+                (
+                    assert_table(val, span.clone(), &mut self.errors).unwrap_or_default(),
+                    Some(span),
+                )
+            })
+            .unwrap_or_default();
         default.make_default();
+
         if let Some(mut cur) = core::mem::take(&mut self.current) {
             if cur.is_movable(kind, &pattern) {
-                cur.next_array(default, &mut self.errors);
+                if let Some(span) = default_span {
+                    self.errors.push(Error::UnallowedDefaultValue { span });
+                }
+
+                cur.next_array(&mut self.errors);
                 self.current = Some(cur);
             } else {
                 self.bind(cur.pattern, cur.value.into_value());
@@ -97,7 +116,7 @@ impl<L: Clone> Current<L> {
             pattern,
             value: match kind {
                 TableHeaderKind::Normal => CurrentValue::Table(default),
-                TableHeaderKind::Array => CurrentValue::Array(vec![default]),
+                TableHeaderKind::Array => CurrentValue::Array(vec![default.clone()], default),
                 _ => unimplemented!(),
             },
         }
@@ -106,14 +125,14 @@ impl<L: Clone> Current<L> {
     #[inline]
     fn is_movable(&self, kind: TableHeaderKind, pattern: &Pattern<L>) -> bool {
         kind == TableHeaderKind::Array
-            && matches!(self.value, CurrentValue::Array(_))
+            && matches!(self.value, CurrentValue::Array(_, _))
             && self.pattern == *pattern
     }
 
-    fn next_array(&mut self, default: Table<L>, errors: &mut Vec<Error<L>>) {
+    fn next_array(&mut self, errors: &mut Vec<Error<L>>) {
         match self.value {
             CurrentValue::Table(_) => errors.push(Error::Unexpected),
-            CurrentValue::Array(ref mut arr) => arr.push(default),
+            CurrentValue::Array(ref mut arr, ref default) => arr.push(default.clone()),
         }
     }
 }
@@ -121,21 +140,21 @@ impl<L: Clone> Current<L> {
 #[derive(Clone, Debug, PartialEq)]
 enum CurrentValue<L> {
     Table(Table<L>),
-    Array(Vec<Table<L>>),
+    Array(Vec<Table<L>>, Table<L>),
 }
 
 impl<L> CurrentValue<L> {
     fn as_mut_table(&mut self) -> Option<&mut Table<L>> {
         match self {
             Self::Table(table) => Some(table),
-            Self::Array(arr) => arr.last_mut(),
+            Self::Array(arr, _) => arr.last_mut(),
         }
     }
 
     fn into_value(self) -> Value<L> {
         match self {
             Self::Table(table) => Value::Table(table),
-            Self::Array(arr) => Value::Array(arr.into_iter().map(Value::Table).collect()),
+            Self::Array(arr, _) => Value::Array(arr.into_iter().map(Value::Table).collect()),
         }
     }
 }
@@ -150,12 +169,6 @@ pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Snapshot<L> {
                 env.bind(pattern, value)
             }
             StatementKind::TableHeader(kind, pattern, default) => {
-                let default = default
-                    .and_then(|expr| {
-                        let (val, span) = expr_to_value(expr, &mut env.errors);
-                        assert_table(val, span, &mut env.errors)
-                    })
-                    .unwrap_or_default();
                 env.header(kind, pattern, default)
             }
             _ => env.errors.push(Error::NotSupported {
