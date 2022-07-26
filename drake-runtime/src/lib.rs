@@ -103,9 +103,10 @@ impl<L: Clone> Environment<L> {
         &mut self,
         kind: TableHeaderKind,
         pattern: Pattern<L>,
-        default: Table<L>,
+        mut default: Table<L>,
         errors: &mut Vec<Error<L>>,
     ) {
+        default.make_default();
         if let Some(mut cur) = core::mem::take(&mut self.current) {
             if cur.is_movable(kind, &pattern) {
                 cur.next_array(default, errors);
@@ -260,7 +261,7 @@ fn table_insert<L: Clone>(
         &mut table.local
     };
 
-    if table.contains_key(&name) {
+    if table.contains_key(&name) && !table[&name].default {
         errors.push(Error::DuplicateKey {
             existing: table[&name].defined.clone(),
             found: span,
@@ -272,6 +273,7 @@ fn table_insert<L: Clone>(
                 value,
                 defined: span,
                 used: global,
+                default: false,
             },
         );
     }

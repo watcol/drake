@@ -28,6 +28,8 @@ pub struct Element<L> {
     pub value: Value<L>,
     /// A position where the element is defined
     pub defined: Range<L>,
+    /// A flag marks as the element is overridable.
+    pub default: bool,
     /// A flag checks if the element is used, or not
     pub used: bool,
 }
@@ -54,5 +56,13 @@ impl<L> Table<L> {
     #[inline]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Marks the table as a default table.
+    pub fn make_default(&mut self) {
+        self.global
+            .values_mut()
+            .for_each(|elem| elem.default = true);
+        self.local.values_mut().for_each(|elem| elem.default = true);
     }
 }
