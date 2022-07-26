@@ -15,6 +15,7 @@ pub struct Statement<L> {
 
 /// Kinds of statements
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum StatementKind<L> {
     /// A value binding like `pat = "expr"`
     ValueBinding(Pattern<L>, Expression<L>),
@@ -24,6 +25,7 @@ pub enum StatementKind<L> {
 
 /// Kinds of table headers
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TableHeaderKind {
     /// A normal table header like `[table]`
     Normal,
@@ -42,6 +44,7 @@ pub struct Pattern<L> {
 
 /// Kinds of patterns
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum PatternKind<L> {
     /// A key pattern
     Key(Key<L>),
@@ -60,6 +63,7 @@ pub struct Key<L> {
 
 /// Kinds of keys
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum KeyKind {
     /// A normal key like `key`
     Normal,
@@ -80,6 +84,7 @@ pub struct Expression<L> {
 
 /// Kinds of expressions
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum ExpressionKind<L> {
     /// A literal
     Literal(Literal),
@@ -91,6 +96,7 @@ pub enum ExpressionKind<L> {
 
 /// Values of literals
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Literal {
     Character(char),
     String(String),

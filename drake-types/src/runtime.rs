@@ -6,6 +6,7 @@ use hashbrown::HashMap;
 
 /// Evaluated values
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Value<L> {
     /// A literal character
     Character(char),
@@ -76,6 +77,7 @@ pub struct Snapshot<L> {
 
 /// Errors for runtimes
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Error<L> {
     DuplicateKey {
         existing: Range<L>,
@@ -98,6 +100,7 @@ pub enum Error<L> {
 
 /// Name of value kinds for errors.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Kind {
     Character,
     String,

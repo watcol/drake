@@ -4,6 +4,7 @@ use core::fmt;
 
 /// Values of tokens
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Token {
     /// A line break
     Newline,
@@ -21,6 +22,7 @@ pub enum Token {
 
 /// Kinds of symbols
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Symbol {
     /// An assign sign (`=`, `U+003D`)
     Assign,
@@ -55,6 +57,7 @@ pub struct Identifier {
 
 /// Kinds of identifiers
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum IdentifierKind {
     /// A bare key
     Bare,
@@ -64,6 +67,7 @@ pub enum IdentifierKind {
 
 /// Literal values
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Literal {
     /// An integer
     Integer(u64, Radix),
@@ -77,6 +81,7 @@ pub enum Literal {
 
 /// Radixes of integers
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Radix {
     /// A binary integer starts with `0b`
     Binary,

@@ -45,6 +45,13 @@ impl<L: Clone> Environment<L> {
                 },
                 key,
             ),
+            _ => {
+                self.errors.push(Error::NotSupported {
+                    feature: "unknown pattern",
+                    span: pattern.span,
+                });
+                return;
+            }
         };
 
         table_insert(table, key, value, &mut self.errors);
@@ -90,6 +97,7 @@ impl<L: Clone> Current<L> {
             value: match kind {
                 TableHeaderKind::Normal => CurrentValue::Table(default),
                 TableHeaderKind::Array => CurrentValue::Array(vec![default]),
+                _ => unimplemented!(),
             },
         }
     }
@@ -102,6 +110,7 @@ impl<L: Clone> Current<L> {
                 (PatternKind::Key(key1), PatternKind::Key(key2)) => {
                     key1.kind == key2.kind && key1.name == key2.name
                 }
+                _ => false,
             }
     }
 
@@ -141,7 +150,7 @@ pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Snapshot<L> {
     for stmt in ast {
         match stmt.kind {
             StatementKind::ValueBinding(pattern, expr) => {
-                let value = expr_to_value(expr.kind, &mut env.errors);
+                let value = expr_to_value(expr, &mut env.errors).0;
                 env.bind(pattern, value)
             }
             StatementKind::TableHeader(kind, pattern, default) => {
@@ -150,41 +159,57 @@ pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Snapshot<L> {
                     .unwrap_or_default();
                 env.header(kind, pattern, default)
             }
+            _ => env.errors.push(Error::NotSupported {
+                feature: "unknown statements",
+                span: stmt.span,
+            }),
         }
     }
 
     env.close()
 }
 
-fn expr_to_value<L: Clone>(expr: ExpressionKind<L>, errors: &mut Vec<Error<L>>) -> Value<L> {
-    match expr {
+fn expr_to_value<L: Clone>(
+    expr: Expression<L>,
+    errors: &mut Vec<Error<L>>,
+) -> (Value<L>, Range<L>) {
+    let val = match expr.kind {
         ExpressionKind::Literal(Literal::Character(c)) => Value::Character(c),
         ExpressionKind::Literal(Literal::String(s)) => Value::String(s),
         ExpressionKind::Literal(Literal::Integer(i)) => Value::Integer(i),
         ExpressionKind::Literal(Literal::Float(f)) => Value::Float(f),
         ExpressionKind::Array(arr) => Value::Array(
             arr.into_iter()
-                .map(|elem| expr_to_value(elem.kind, errors))
+                .map(|elem| expr_to_value(elem, errors).0)
                 .collect(),
         ),
         ExpressionKind::InlineTable(arr) => {
             let mut table = Table::new();
             for (key, expr) in arr {
-                table_insert(&mut table, key, expr_to_value(expr.kind, errors), errors);
+                table_insert(&mut table, key, expr_to_value(expr, errors).0, errors);
             }
             Value::Table(table)
         }
-    }
+        _ => {
+            errors.push(Error::NotSupported {
+                feature: "unknown expressions",
+                span: expr.span.clone(),
+            });
+            Value::Table(Table::new())
+        }
+    };
+
+    (val, expr.span)
 }
 
 fn expr_to_table<L: Clone>(expr: Expression<L>, errors: &mut Vec<Error<L>>) -> Option<Table<L>> {
-    match expr_to_value(expr.kind, errors) {
-        Value::Table(table) => Some(table),
-        val => {
+    match expr_to_value(expr, errors) {
+        (Value::Table(table), _) => Some(table),
+        (val, span) => {
             errors.push(Error::KindMismatch {
                 expect: vec![Kind::Table],
                 found: Kind::from_value(&val),
-                span: expr.span,
+                span,
             });
             None
         }
@@ -230,9 +255,9 @@ fn key_destruct<L>(key: Key<L>, errors: &mut Vec<Error<L>>) -> Option<(bool, Str
     match key.kind {
         KeyKind::Normal => Some((true, key.name, key.span)),
         KeyKind::Local => Some((false, key.name, key.span)),
-        KeyKind::Builtin => {
+        _ => {
             errors.push(Error::NotSupported {
-                feature: "built-in keys",
+                feature: "unknown keys",
                 span: key.span,
             });
             None
