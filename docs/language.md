@@ -140,15 +140,16 @@ users = [
 ]
 ```
 
-In the first header, an initial array can be used instead of an empty array.
+Initial tables are also available in arrays of tables. Initial tables of the
+first element will be used for every element.
 
 ```toml
-# `array` is `[ { foo = "foo" }, "str", { bar = "bar" }, { baz = "baz" } ]`.
-[[ array = [{ foo = "foo" }, "str"] ]]
-bar = "bar"
+# `array` is `[{ foo = "foo", bar = "baz", baz = 1 }, { foo = "foo", bar = "bar" }]`.
+[[array = { foo = "foo", bar = "bar" }]]
+bar = "baz"
+baz = 1
 
 [[array]]
-baz = "baz"
 ```
 
 ### Function Definition
@@ -173,6 +174,7 @@ these types:
 - [Integer](#integer)
 - [Float](#float)
 - [Boolean](#boolean)
+- [Null](#null)
 - [Array](#array)
 - [Inline Table](#inline-table)
 - [Inline Function](#inline-function)
@@ -277,7 +279,7 @@ float7 = 5_000.000_003   # same as 5000.000003
 ```
 
 Use `@inf` and `@nan` to express positive infinity and "Not a number." See
-also [Built-in Key](#built-in-key).
+also [Built-in Key Pattern](#built-in-key-pattern).
 
 ```toml
 float8 = @inf    # Positive Infinity
@@ -288,11 +290,19 @@ float10 = @nan   # Not a number.
 #### Boolean
 Boolean is a value, either "true" or "false". Use `@true` and `@false`
 to express them. (`true` and `false` are keys.) See also
-[Built-in Key](#built-in-key).
+[Built-in Key Pattern](#built-in-key-pattern).
 
 ```toml
 bool1 = @true
 bool2 = @false
+```
+
+#### Null
+Null is a value to represent "empty". Use `@null` to express them, See also
+[Built-in Key Pattern](#built-in-key-pattern).
+
+```toml
+null = @null
 ```
 
 #### Array
@@ -385,8 +395,6 @@ types of keys:
 - [Bare Key](#bare-key)
 - [Raw Key](#raw-key)
 - [Local Key](#local-key)
-- [Root Key](#root-key)
-- [Built-in Key](#built-in-key)
 
 #### Bare Key
 Bare key is a basic way to express key, and a bare key starts with a 
@@ -420,7 +428,7 @@ ${\\{All\u{00A0}characters\ncan be used.\}} = true
 Local key is a [bare](#bare-key) or [raw](#raw-key) key prefixed with a low
 line (`U+005F`). Local keys can't be accessed from external scope, and won't
 be [rendered](#terms) by the compiler. [Whitespaces](#terms) after the `_`
-prefix are **not** allowed. (Unlike [root keys](#root-key))
+prefix are **not** allowed.
 
 This is useful when you want to create commonly used in the file, but is not
 needed to be visible from out of a scope.
@@ -462,43 +470,6 @@ subsub2 = .sub._sub_local        # Allowed
 subsub3 = _sub_sub_local         # Allowed
 ```
 
-#### Root Key
-Root key is a [bare](#bare-key), [raw](#raw-key), or [local](#local-key) key
-prefixed by a period, and access value from the [root scope](#root-scope)
-instead of current scope. [Whitespaces](#terms) after `.` prefix are **allowed**.
-(Unlike [local keys](#local-key))
-
-```toml
-value = "root"
-
-[table]
-value = "table"
-foo = value          # "table"
-bar = .value         # "root"
-bar = . table.value   # "table"
-
-.${Raw Root} = "Raw Root Key"
-${.Not Root} = "Normal Raw Key"
-```
-
-#### Built-in Key
-Built-in key is a key starts with a commercial at (`@`, `U+0040`), integrated
-with the transpiler.
-
-- `@output` ... A [string](#string) to specify destination path to output a
-                transpiled source. Write only.
-- `@type`   ... A [string](#string) to specify file type to transpile.
-                Supported file types are described
-                [here](#supported-file-types). Write only. (Normally infered
-                from `@output` and not needed.)
-- `@nan`    ... A [float](#float) expresses quiet "Not a Number". Read only.
-- `@inf`    ... A [float](#float) expresses positive infinity. Read only.
-- `@true`   ... A [boolean](#boolean) expresses true. Read only.
-- `@false`  ... A [boolean](#boolean) expresses false. Read only.
-
-Note that built-in keys are file-specific, and independent from the root
-scope.
-
 ### Scope
 Scope is a special table, used as the base point when refering keys. There are
 three types of scopes:
@@ -524,6 +495,43 @@ Key pattern is a pattern that just stores a key to current [scope](#scope).
 
 ```toml
 key = "foo"
+```
+
+### Built-in Key Pattern
+Built-in key pattern is a pattern to access values integrated with a transpiler,
+starts with a commercial at (`@`, `U+0040`),
+
+
+- `@output` ... A [string](#string) to specify destination path to output a
+                transpiled source. Write only.
+- `@type`   ... A [string](#string) to specify file type to transpile.
+                Supported file types are described
+                [here](#supported-file-types). Write only. (Normally infered
+                from `@output` and not needed.)
+- `@nan`    ... A [float](#float) expresses quiet "Not a Number". Read only.
+- `@inf`    ... A [float](#float) expresses positive infinity. Read only.
+- `@true`   ... A [boolean](#boolean) expresses true. Read only.
+- `@false`  ... A [boolean](#boolean) expresses false. Read only.
+
+Note that these values are file-specific, and independent from the root
+scope.
+
+### Root Key Pattern
+Root key pattern is a [bare](#bare-key), [raw](#raw-key), or [local](#local-key) key
+prefixed by a period, and access value from the [root scope](#root-scope)
+instead of current scope.
+
+```toml
+value = "root"
+
+[table]
+value = "table"
+foo = value          # "table"
+bar = .value         # "root"
+bar = . table.value   # "table"
+
+.${Raw Root} = "Raw Root Key Pattern"
+${.Not Root} = "Normal Raw Key"
 ```
 
 ### Dotted Key Pattern
