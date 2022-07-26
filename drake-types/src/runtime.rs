@@ -63,8 +63,8 @@ impl<L> Table<L> {
     pub fn make_default(&mut self) {
         self.global
             .values_mut()
+            .chain(self.local.values_mut())
             .for_each(|elem| elem.default = true);
-        self.local.values_mut().for_each(|elem| elem.default = true);
     }
 }
 

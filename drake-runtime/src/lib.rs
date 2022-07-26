@@ -106,12 +106,7 @@ impl<L: Clone> Current<L> {
     fn is_movable(&self, kind: TableHeaderKind, pattern: &Pattern<L>) -> bool {
         kind == TableHeaderKind::Array
             && matches!(self.value, CurrentValue::Array(_))
-            && match (&self.pattern.kind, &pattern.kind) {
-                (PatternKind::Key(key1), PatternKind::Key(key2)) => {
-                    key1.kind == key2.kind && key1.name == key2.name
-                }
-                _ => false,
-            }
+            && self.pattern == *pattern
     }
 
     fn next_array(&mut self, default: Table<L>, errors: &mut Vec<Error<L>>) {
