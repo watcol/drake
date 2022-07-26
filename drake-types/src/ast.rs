@@ -69,8 +69,6 @@ pub enum KeyKind {
     Normal,
     /// A local key like `_key`
     Local,
-    /// A built-in key like `@key`
-    Builtin,
 }
 
 /// Expressions

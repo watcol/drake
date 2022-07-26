@@ -37,20 +37,6 @@ fn key() {
             ),
             (
                 &[
-                    Token::Symbol(Symbol::At),
-                    Token::Identifier(Identifier {
-                        kind: IdentifierKind::Bare,
-                        name: String::from("abc"),
-                    }),
-                ],
-                Some(Key {
-                    kind: KeyKind::Builtin,
-                    name: String::from("abc"),
-                    span: 0..2,
-                }),
-            ),
-            (
-                &[
                     Token::Symbol(Symbol::Assign),
                     Token::Identifier(Identifier {
                         kind: IdentifierKind::Bare,

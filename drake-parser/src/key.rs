@@ -15,7 +15,6 @@ where
 {
     let prefix = choice((
         symbol(Symbol::Underscore).map(|_| KeyKind::Local),
-        symbol(Symbol::At).map(|_| KeyKind::Builtin),
         value(KeyKind::Normal),
     ));
 
