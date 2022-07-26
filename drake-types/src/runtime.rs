@@ -75,8 +75,8 @@ pub struct Table<L> {
 
 #[derive(Clone, Debug, PartialEq, Default, Eq)]
 pub struct Builtin {
-    output: Option<String>,
-    filetype: Option<String>,
+    pub output: Option<String>,
+    pub filetype: Option<String>,
 }
 
 impl Builtin {
