@@ -1,8 +1,16 @@
 //! Types for runtimes
+use crate::ast::{Key, KeyKind};
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Range;
 use hashbrown::HashMap;
+
+/// Snapshots for the runtime.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Snapshot<L> {
+    pub root: Table<L>,
+    pub errors: Vec<Error<L>>,
+}
 
 /// Evaluated values
 #[derive(Clone, Debug, PartialEq)]
@@ -22,17 +30,31 @@ pub enum Value<L> {
     Table(Table<L>),
 }
 
-/// Table's elements
-#[derive(Clone, Debug, PartialEq)]
-pub struct Element<L> {
-    /// A value of the element
-    pub value: Value<L>,
-    /// A position where the element is defined
-    pub defined: Range<L>,
-    /// A flag marks as the element is overridable.
-    pub default: bool,
-    /// A flag checks if the element is used, or not
-    pub used: bool,
+
+impl<L> Value<L> {
+    /// Returns a kind of the value
+    pub fn kind(&self) -> Kind {
+        match self {
+            Self::Character(_) => Kind::Character,
+            Self::String(_) => Kind::String,
+            Self::Integer(_) => Kind::Integer,
+            Self::Float(_) => Kind::Float,
+            Self::Array(_) => Kind::Array,
+            Self::Table(_) => Kind::Table,
+        }
+    }
+}
+
+/// Name of value kinds for errors.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Kind {
+    Character,
+    String,
+    Integer,
+    Float,
+    Array,
+    Table,
 }
 
 /// Evaluated tables
@@ -66,13 +88,39 @@ impl<L> Table<L> {
             .chain(self.local.values_mut())
             .for_each(|elem| elem.default = true);
     }
+
+    /// Inserts an element
+    pub fn insert(&mut self, key: Key<L>, value: Value<L>) -> Result<(), Error<L>> where L: Clone {
+        let (table, used) = match key.kind {
+            KeyKind::Normal => (&mut self.global, true),
+            KeyKind::Local => (&mut self.global, false),
+        };
+
+        if table.contains_key(&key.name) && !table[&key.name].default {
+            Err(Error::DuplicateKey { existing: table[&key.name].defined.clone(), found: key.span })
+        } else {
+            table.insert(key.name, Element {
+                value,
+                defined: key.span,
+                default: false,
+                used,
+            });
+            Ok(())
+        }
+    }
 }
 
-/// Snapshots for the runtime.
+/// Table's elements
 #[derive(Clone, Debug, PartialEq)]
-pub struct Snapshot<L> {
-    pub root: Table<L>,
-    pub errors: Vec<Error<L>>,
+pub struct Element<L> {
+    /// A value of the element
+    pub value: Value<L>,
+    /// A position where the element is defined
+    pub defined: Range<L>,
+    /// A flag marks as the element is overridable.
+    pub default: bool,
+    /// A flag checks if the element is used, or not
+    pub used: bool,
 }
 
 /// Errors for runtimes
@@ -96,30 +144,4 @@ pub enum Error<L> {
         span: Range<L>,
     },
     Unexpected,
-}
-
-/// Name of value kinds for errors.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Kind {
-    Character,
-    String,
-    Integer,
-    Float,
-    Array,
-    Table,
-}
-
-impl Kind {
-    /// Evaluates a kind from the value.
-    pub fn from_value<L>(val: &Value<L>) -> Self {
-        match val {
-            Value::Character(_) => Self::Character,
-            Value::String(_) => Self::String,
-            Value::Integer(_) => Self::Integer,
-            Value::Float(_) => Self::Float,
-            Value::Array(_) => Self::Array,
-            Value::Table(_) => Self::Table,
-        }
-    }
 }

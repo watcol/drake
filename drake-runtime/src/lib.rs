@@ -1,15 +1,14 @@
 #![no_std]
 extern crate alloc;
 
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Range;
 use drake_types::ast::{
-    Expression, ExpressionKind, Key, KeyKind, Literal, Pattern, PatternKind, Statement,
-    StatementKind, TableHeaderKind,
+    Expression, ExpressionKind, Literal, Pattern, PatternKind, Statement, StatementKind,
+    TableHeaderKind,
 };
-use drake_types::runtime::{Element, Error, Kind, Snapshot, Table, Value};
+use drake_types::runtime::{Error, Kind, Snapshot, Table, Value};
 
 #[derive(Clone, Debug, PartialEq)]
 struct Environment<L> {
@@ -54,7 +53,9 @@ impl<L: Clone> Environment<L> {
             }
         };
 
-        table_insert(table, key, value, &mut self.errors);
+        if let Err(err) = table.insert(key, value) {
+            self.errors.push(err);
+        }
     }
 
     fn header(&mut self, kind: TableHeaderKind, pattern: Pattern<L>, mut default: Table<L>) {
@@ -150,7 +151,10 @@ pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Snapshot<L> {
             }
             StatementKind::TableHeader(kind, pattern, default) => {
                 let default = default
-                    .and_then(|expr| expr_to_table(expr, &mut env.errors))
+                    .and_then(|expr| {
+                        let (val, span) = expr_to_value(expr, &mut env.errors);
+                        assert_table(val, span, &mut env.errors)
+                    })
                     .unwrap_or_default();
                 env.header(kind, pattern, default)
             }
@@ -181,7 +185,9 @@ fn expr_to_value<L: Clone>(
         ExpressionKind::InlineTable(arr) => {
             let mut table = Table::new();
             for (key, expr) in arr {
-                table_insert(&mut table, key, expr_to_value(expr, errors).0, errors);
+                if let Err(err) = table.insert(key, expr_to_value(expr, errors).0) {
+                    errors.push(err);
+                }
             }
             Value::Table(table)
         }
@@ -197,63 +203,18 @@ fn expr_to_value<L: Clone>(
     (val, expr.span)
 }
 
-fn expr_to_table<L: Clone>(expr: Expression<L>, errors: &mut Vec<Error<L>>) -> Option<Table<L>> {
-    match expr_to_value(expr, errors) {
-        (Value::Table(table), _) => Some(table),
-        (val, span) => {
+fn assert_table<L: Clone>(
+    val: Value<L>,
+    span: Range<L>,
+    errors: &mut Vec<Error<L>>,
+) -> Option<Table<L>> {
+    match val {
+        Value::Table(table) => Some(table),
+        val => {
             errors.push(Error::KindMismatch {
                 expect: vec![Kind::Table],
-                found: Kind::from_value(&val),
+                found: val.kind(),
                 span,
-            });
-            None
-        }
-    }
-}
-
-fn table_insert<L: Clone>(
-    table: &mut Table<L>,
-    key: Key<L>,
-    value: Value<L>,
-    errors: &mut Vec<Error<L>>,
-) {
-    let (global, name, span) = match key_destruct(key, errors) {
-        Some(key) => key,
-        None => return,
-    };
-
-    let table = if global {
-        &mut table.global
-    } else {
-        &mut table.local
-    };
-
-    if table.contains_key(&name) && !table[&name].default {
-        errors.push(Error::DuplicateKey {
-            existing: table[&name].defined.clone(),
-            found: span,
-        });
-    } else {
-        table.insert(
-            name,
-            Element {
-                value,
-                defined: span,
-                used: global,
-                default: false,
-            },
-        );
-    }
-}
-
-fn key_destruct<L>(key: Key<L>, errors: &mut Vec<Error<L>>) -> Option<(bool, String, Range<L>)> {
-    match key.kind {
-        KeyKind::Normal => Some((true, key.name, key.span)),
-        KeyKind::Local => Some((false, key.name, key.span)),
-        _ => {
-            errors.push(Error::NotSupported {
-                feature: "unknown keys",
-                span: key.span,
             });
             None
         }
