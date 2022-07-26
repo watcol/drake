@@ -11,6 +11,13 @@ use drake_types::ast::{
 };
 use drake_types::runtime::{Element, Table, Value};
 
+/// Snapshots for the runtime.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Snapshot<L> {
+    pub root: Table<L>,
+    pub errors: Vec<Error<L>>,
+}
+
 /// Errors for runtimes
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error<L> {
@@ -44,12 +51,8 @@ pub enum Kind {
     Table,
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Snapshot<L> {
-    root: Table<L>,
-}
-
 impl Kind {
+    /// Evaluates a kind from the value.
     pub fn from_value<L>(val: &Value<L>) -> Self {
         match val {
             Value::Character(_) => Self::Character,
@@ -66,6 +69,7 @@ impl Kind {
 struct Environment<L> {
     root: Table<L>,
     current: Option<Current<L>>,
+    errors: Vec<Error<L>>,
 }
 
 impl<L> Default for Environment<L> {
@@ -74,19 +78,20 @@ impl<L> Default for Environment<L> {
         Self {
             root: Table::new(),
             current: None,
+            errors: Vec::new(),
         }
     }
 }
 
 impl<L: Clone> Environment<L> {
-    fn bind(&mut self, pattern: Pattern<L>, value: Value<L>, errors: &mut Vec<Error<L>>) {
+    fn bind(&mut self, pattern: Pattern<L>, value: Value<L>) {
         let (table, key) = match pattern.kind {
             PatternKind::Key(key) => (
                 match self.current {
                     Some(ref mut cur) => match cur.value.as_mut_table() {
                         Some(table) => table,
                         None => {
-                            errors.push(Error::Unexpected);
+                            self.errors.push(Error::Unexpected);
                             return;
                         }
                     },
@@ -96,23 +101,17 @@ impl<L: Clone> Environment<L> {
             ),
         };
 
-        table_insert(table, key, value, errors);
+        table_insert(table, key, value, &mut self.errors);
     }
 
-    fn header(
-        &mut self,
-        kind: TableHeaderKind,
-        pattern: Pattern<L>,
-        mut default: Table<L>,
-        errors: &mut Vec<Error<L>>,
-    ) {
+    fn header(&mut self, kind: TableHeaderKind, pattern: Pattern<L>, mut default: Table<L>) {
         default.make_default();
         if let Some(mut cur) = core::mem::take(&mut self.current) {
             if cur.is_movable(kind, &pattern) {
-                cur.next_array(default, errors);
+                cur.next_array(default, &mut self.errors);
                 self.current = Some(cur);
             } else {
-                self.bind(cur.pattern, cur.value.into_value(), errors);
+                self.bind(cur.pattern, cur.value.into_value());
                 self.current = Some(Current::new(kind, pattern, default));
             }
         } else {
@@ -120,12 +119,15 @@ impl<L: Clone> Environment<L> {
         }
     }
 
-    fn close(mut self, errors: &mut Vec<Error<L>>) -> Snapshot<L> {
+    fn close(mut self) -> Snapshot<L> {
         if let Some(cur) = core::mem::take(&mut self.current) {
-            self.bind(cur.pattern, cur.value.into_value(), errors);
+            self.bind(cur.pattern, cur.value.into_value());
         }
 
-        Snapshot { root: self.root }
+        Snapshot {
+            root: self.root,
+            errors: self.errors,
+        }
     }
 }
 
@@ -188,25 +190,24 @@ impl<L> CurrentValue<L> {
 }
 
 /// Evaluates an AST to a value.
-pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>, errors: &mut Vec<Error<L>>) -> Snapshot<L> {
+pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Snapshot<L> {
     let mut env = Environment::default();
     for stmt in ast {
         match stmt.kind {
             StatementKind::ValueBinding(pattern, expr) => {
-                env.bind(pattern, expr_to_value(expr.kind, errors), errors)
+                let value = expr_to_value(expr.kind, &mut env.errors);
+                env.bind(pattern, value)
             }
-            StatementKind::TableHeader(kind, pattern, default) => env.header(
-                kind,
-                pattern,
-                default
-                    .and_then(|expr| expr_to_table(expr, errors))
-                    .unwrap_or_default(),
-                errors,
-            ),
+            StatementKind::TableHeader(kind, pattern, default) => {
+                let default = default
+                    .and_then(|expr| expr_to_table(expr, &mut env.errors))
+                    .unwrap_or_default();
+                env.header(kind, pattern, default)
+            }
         }
     }
 
-    env.close(errors)
+    env.close()
 }
 
 fn expr_to_value<L: Clone>(expr: ExpressionKind<L>, errors: &mut Vec<Error<L>>) -> Value<L> {
