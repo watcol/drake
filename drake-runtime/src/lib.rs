@@ -1,7 +1,6 @@
 #![no_std]
 extern crate alloc;
 
-use alloc::boxed::Box;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -45,6 +44,11 @@ pub enum Kind {
     Table,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct Snapshot<L> {
+    root: Table<L>,
+}
+
 impl Kind {
     pub fn from_value<L>(val: &Value<L>) -> Self {
         match val {
@@ -58,160 +62,150 @@ impl Kind {
     }
 }
 
-struct Cursor<L> {
-    kind: CursorKind<L>,
-    origin: Option<(Box<Cursor<L>>, Key<L>)>,
+#[derive(Clone, Debug, PartialEq)]
+struct Environment<L> {
+    root: Table<L>,
+    current: Option<Current<L>>,
 }
 
-impl<L: Clone> Cursor<L> {
-    fn as_mut_table(&mut self, errors: &mut Vec<Error<L>>) -> Option<&mut Table<L>> {
-        match self.kind {
-            CursorKind::Table(ref mut table) => Some(table),
-            CursorKind::Array(ref mut tables) => match tables.last_mut() {
-                Some(Value::Table(ref mut table)) => Some(table),
-                _ => {
-                    errors.push(Error::Unexpected);
-                    None
-                }
+impl<L> Default for Environment<L> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            root: Table::new(),
+            current: None,
+        }
+    }
+}
+
+impl<L: Clone> Environment<L> {
+    fn bind(&mut self, pattern: Pattern<L>, value: Value<L>, errors: &mut Vec<Error<L>>) {
+        let (table, key) = match pattern.kind {
+            PatternKind::Key(key) => (
+                match self.current {
+                    Some(ref mut cur) => match cur.value.as_mut_table() {
+                        Some(table) => table,
+                        None => {
+                            errors.push(Error::Unexpected);
+                            return;
+                        }
+                    },
+                    None => &mut self.root,
+                },
+                key,
+            ),
+        };
+
+        table_insert(table, key, value, errors);
+    }
+
+    fn header(
+        &mut self,
+        kind: TableHeaderKind,
+        pattern: Pattern<L>,
+        default: Table<L>,
+        errors: &mut Vec<Error<L>>,
+    ) {
+        if let Some(mut cur) = core::mem::take(&mut self.current) {
+            if cur.is_movable(kind, &pattern) {
+                cur.next_array(default, errors);
+                self.current = Some(cur);
+            } else {
+                self.bind(cur.pattern, cur.value.into_value(), errors);
+                self.current = Some(Current::new(kind, pattern, default));
+            }
+        } else {
+            self.current = Some(Current::new(kind, pattern, default));
+        }
+    }
+
+    fn close(mut self, errors: &mut Vec<Error<L>>) -> Snapshot<L> {
+        if let Some(cur) = core::mem::take(&mut self.current) {
+            self.bind(cur.pattern, cur.value.into_value(), errors);
+        }
+
+        Snapshot { root: self.root }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct Current<L> {
+    pattern: Pattern<L>,
+    value: CurrentValue<L>,
+}
+
+impl<L: Clone> Current<L> {
+    fn new(kind: TableHeaderKind, pattern: Pattern<L>, default: Table<L>) -> Self {
+        Self {
+            pattern,
+            value: match kind {
+                TableHeaderKind::Normal => CurrentValue::Table(default),
+                TableHeaderKind::Array => CurrentValue::Array(vec![default]),
             },
         }
     }
 
-    fn new_root() -> Self {
-        Self {
-            kind: CursorKind::Table(Table::new()),
-            origin: None,
-        }
+    #[inline]
+    fn is_movable(&self, kind: TableHeaderKind, pattern: &Pattern<L>) -> bool {
+        kind == TableHeaderKind::Array
+            && matches!(self.value, CurrentValue::Array(_))
+            && match (&self.pattern.kind, &pattern.kind) {
+                (PatternKind::Key(key1), PatternKind::Key(key2)) => {
+                    key1.kind == key2.kind && key1.name == key2.name
+                }
+            }
     }
 
-    fn new_table(
-        self: Box<Self>,
-        kind: TableHeaderKind,
-        key: Key<L>,
-        default: Option<Expression<L>>,
-        errors: &mut Vec<Error<L>>,
-    ) -> Self {
-        match kind {
-            TableHeaderKind::Normal => {
-                let table = match default {
-                    Some(expr) => expr_to_table(expr, errors).unwrap_or_default(),
-                    None => Table::new(),
-                };
-                Self {
-                    kind: CursorKind::Table(table),
-                    origin: Some((self.bind(errors), key)),
-                }
-            }
-            TableHeaderKind::Array
-                if self
-                    .origin
-                    .as_ref()
-                    .map(|(_, org_key)| key.kind == org_key.kind && key.name == key.name)
-                    .unwrap_or_default() =>
-            {
-                match self.kind {
-                    CursorKind::Table(_) => self.bind(errors).new_table(kind, key, default, errors),
-                    CursorKind::Array(mut arr) => {
-                        if let Some(expr) = default {
-                            errors.push(Error::UnallowedDefaultValue { span: expr.span });
-                        }
-
-                        arr.push(Value::Table(Table::new()));
-
-                        Self {
-                            kind: CursorKind::Array(arr),
-                            origin: self.origin,
-                        }
-                    }
-                }
-            }
-            TableHeaderKind::Array => {
-                let mut arr = match default {
-                    Some(expr) => expr_to_array(expr, errors).unwrap_or_default(),
-                    None => Vec::new(),
-                };
-
-                arr.push(Value::Table(Table::new()));
-
-                Self {
-                    kind: CursorKind::Array(arr),
-                    origin: Some((self.bind(errors), key)),
-                }
-            }
-        }
-    }
-
-    fn bind(self: Box<Self>, errors: &mut Vec<Error<L>>) -> Box<Self> {
-        match self.origin {
-            Some((mut new, key)) => {
-                if let Some(t) = new.as_mut_table(errors) {
-                    table_insert(t, key, self.kind.into_value(), errors);
-                }
-                new
-            }
-            None => self,
+    fn next_array(&mut self, default: Table<L>, errors: &mut Vec<Error<L>>) {
+        match self.value {
+            CurrentValue::Table(_) => errors.push(Error::Unexpected),
+            CurrentValue::Array(ref mut arr) => arr.push(default),
         }
     }
 }
 
-enum CursorKind<L> {
+#[derive(Clone, Debug, PartialEq)]
+enum CurrentValue<L> {
     Table(Table<L>),
-    Array(Vec<Value<L>>),
+    Array(Vec<Table<L>>),
 }
 
-impl<L> CursorKind<L> {
+impl<L> CurrentValue<L> {
+    fn as_mut_table(&mut self) -> Option<&mut Table<L>> {
+        match self {
+            Self::Table(table) => Some(table),
+            Self::Array(arr) => arr.last_mut(),
+        }
+    }
+
     fn into_value(self) -> Value<L> {
         match self {
             Self::Table(table) => Value::Table(table),
-            Self::Array(arr) => Value::Array(arr),
+            Self::Array(arr) => Value::Array(arr.into_iter().map(Value::Table).collect()),
         }
     }
 }
 
 /// Evaluates an AST to a value.
-pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>, errors: &mut Vec<Error<L>>) -> Value<L> {
-    let mut cursor = Box::new(Cursor::new_root());
+pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>, errors: &mut Vec<Error<L>>) -> Snapshot<L> {
+    let mut env = Environment::default();
     for stmt in ast {
         match stmt.kind {
-            StatementKind::ValueBinding(pat, expr) => match cursor.as_mut_table(errors) {
-                Some(t) => bind(t, pat, expr, errors),
-                None => continue,
-            },
-            StatementKind::TableHeader(kind, pat, default) => {
-                header(&mut cursor, kind, pat, default, errors)
+            StatementKind::ValueBinding(pattern, expr) => {
+                env.bind(pattern, expr_to_value(expr.kind, errors), errors)
             }
+            StatementKind::TableHeader(kind, pattern, default) => env.header(
+                kind,
+                pattern,
+                default
+                    .and_then(|expr| expr_to_table(expr, errors))
+                    .unwrap_or_default(),
+                errors,
+            ),
         }
     }
 
-    cursor.bind(errors).kind.into_value()
-}
-
-fn header<L: Clone>(
-    cursor: &mut Box<Cursor<L>>,
-    kind: TableHeaderKind,
-    pat: Pattern<L>,
-    default: Option<Expression<L>>,
-    errors: &mut Vec<Error<L>>,
-) {
-    match pat.kind {
-        PatternKind::Key(key) => unsafe {
-            use core::ptr;
-            let cur = ptr::read(cursor);
-            ptr::write(cursor, Box::new(cur.new_table(kind, key, default, errors)))
-        },
-    }
-}
-
-fn bind<L: Clone>(
-    table: &mut Table<L>,
-    pat: Pattern<L>,
-    expr: Expression<L>,
-    errors: &mut Vec<Error<L>>,
-) {
-    let val = expr_to_value(expr.kind, errors);
-    match pat.kind {
-        PatternKind::Key(key) => table_insert(table, key, val, errors),
-    }
+    env.close(errors)
 }
 
 fn expr_to_value<L: Clone>(expr: ExpressionKind<L>, errors: &mut Vec<Error<L>>) -> Value<L> {
@@ -241,23 +235,6 @@ fn expr_to_table<L: Clone>(expr: Expression<L>, errors: &mut Vec<Error<L>>) -> O
         val => {
             errors.push(Error::KindMismatch {
                 expect: vec![Kind::Table],
-                found: Kind::from_value(&val),
-                span: expr.span,
-            });
-            None
-        }
-    }
-}
-
-fn expr_to_array<L: Clone>(
-    expr: Expression<L>,
-    errors: &mut Vec<Error<L>>,
-) -> Option<Vec<Value<L>>> {
-    match expr_to_value(expr.kind, errors) {
-        Value::Array(arr) => Some(arr),
-        val => {
-            errors.push(Error::KindMismatch {
-                expect: vec![Kind::Array],
                 found: Kind::from_value(&val),
                 span: expr.span,
             });
