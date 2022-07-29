@@ -91,6 +91,7 @@ impl Module {
         Ok(self.ast.as_ref().unwrap())
     }
 
+    /// Evaluates the module and returns a reference of the snapshot.
     pub async fn evaluate(&mut self) -> Result<&Snapshot<usize>, ParseError> {
         self.snapshot = Some(evaluate(match self.ast {
             Some(ref ast) => ast.as_slice(),
@@ -122,5 +123,11 @@ impl Module {
     #[inline]
     pub fn get_ast(&self) -> Option<&[Statement<usize>]> {
         self.ast.as_deref()
+    }
+
+    /// Gets a reference for the evaluated snapshot.
+    #[inline]
+    pub fn get_snapshot(&self) -> Option<&Snapshot<usize>> {
+        self.snapshot.as_ref()
     }
 }
