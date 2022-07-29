@@ -52,6 +52,7 @@ dependencies = [
  "codespan-reporting",
  "drake-lexer",
  "drake-parser",
+ "drake-runtime",
  "drake-types",
  "futures-util",
  "pin-project-lite",

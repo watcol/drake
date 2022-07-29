@@ -5,7 +5,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use codespan_reporting::files::{Error, Files};
 use core::ops::Range;
-use drake_types::ast::Statement;
+use drake_runtime::evaluate;
+use drake_types::{ast::Statement, runtime::Snapshot};
 
 use crate::files::Source;
 use parse::{parse, tokenize};
@@ -18,6 +19,7 @@ pub struct Module {
     source: Source,
     tokens: Option<Vec<Token>>,
     ast: Option<Vec<Statement<usize>>>,
+    snapshot: Option<Snapshot<usize>>,
 }
 
 impl<'a> Files<'a> for Module {
@@ -64,6 +66,7 @@ impl Module {
             source: Source::new(source),
             tokens: None,
             ast: None,
+            snapshot: None,
         }
     }
 
@@ -86,6 +89,15 @@ impl Module {
         );
 
         Ok(self.ast.as_ref().unwrap())
+    }
+
+    pub async fn evaluate(&mut self) -> Result<&Snapshot<usize>, ParseError> {
+        self.snapshot = Some(evaluate(match self.ast {
+            Some(ref ast) => ast.as_slice(),
+            None => self.parse().await?,
+        }));
+
+        Ok(self.snapshot.as_ref().unwrap())
     }
 
     /// Gets a reference for the name of the module.

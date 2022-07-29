@@ -193,20 +193,20 @@ impl<L> CurrentValue<L> {
 }
 
 /// Evaluates an AST to a value.
-pub fn evaluate<L: Clone>(ast: Vec<Statement<L>>) -> Snapshot<L> {
+pub fn evaluate<L: Clone>(ast: &[Statement<L>]) -> Snapshot<L> {
     let mut env = Environment::default();
     for stmt in ast {
         match stmt.kind {
-            StatementKind::ValueBinding(pattern, expr) => {
-                let value = expr_to_value(expr, &mut env.errors).0;
-                env.bind(pattern, value)
+            StatementKind::ValueBinding(ref pattern, ref expr) => {
+                let value = expr_to_value(expr.clone(), &mut env.errors).0;
+                env.bind(pattern.clone(), value)
             }
-            StatementKind::TableHeader(kind, pattern, default) => {
-                env.header(kind, pattern, default)
+            StatementKind::TableHeader(kind, ref pattern, ref default) => {
+                env.header(kind, pattern.clone(), default.clone())
             }
             _ => env.errors.push(Error::NotSupported {
                 feature: "unknown statements",
-                span: stmt.span,
+                span: stmt.span.clone(),
             }),
         }
     }
