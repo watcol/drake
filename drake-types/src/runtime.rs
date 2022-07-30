@@ -1,5 +1,4 @@
 //! Types for runtimes
-use crate::error::Error;
 use crate::error::Kind;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -11,7 +10,6 @@ use hashbrown::HashMap;
 pub struct Snapshot<L> {
     pub root: Table<L>,
     pub builtin: Builtin,
-    pub errors: Vec<Error<L>>,
 }
 
 /// Evaluated values

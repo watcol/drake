@@ -150,16 +150,18 @@ impl<L: Clone> Environment<L> {
         }
     }
 
-    fn close(mut self) -> Snapshot<L> {
+    fn close(mut self) -> (Snapshot<L>, Vec<Error<L>>) {
         if let Some(cur) = core::mem::take(&mut self.current) {
             self.bind(cur.pattern, cur.value.into_value());
         }
 
-        Snapshot {
-            root: self.root,
-            builtin: self.builtin,
-            errors: self.errors,
-        }
+        (
+            Snapshot {
+                root: self.root,
+                builtin: self.builtin,
+            },
+            self.errors,
+        )
     }
 }
 
@@ -219,7 +221,7 @@ impl<L> CurrentValue<L> {
 }
 
 /// Evaluates an AST to a value.
-pub fn evaluate<L: Clone>(ast: &[Statement<L>], file_id: usize) -> Snapshot<L> {
+pub fn evaluate<L: Clone>(ast: &[Statement<L>], file_id: usize) -> (Snapshot<L>, Vec<Error<L>>) {
     let mut env = Environment::new(file_id);
     for stmt in ast {
         match stmt.kind {

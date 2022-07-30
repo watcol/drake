@@ -6,7 +6,9 @@ use alloc::vec::Vec;
 use codespan_reporting::files::Files;
 use core::ops::Range;
 use drake_runtime::evaluate;
-use drake_types::{ast::Statement, error::Error, runtime::Snapshot};
+use drake_types::ast::Statement;
+use drake_types::error::Error;
+use drake_types::runtime::Snapshot;
 
 use crate::files::Source;
 pub use parse::Token;
@@ -21,6 +23,7 @@ pub struct Module {
     tokens: Option<Vec<Token>>,
     ast: Option<Vec<Statement<usize>>>,
     snapshot: Option<Snapshot<usize>>,
+    errors: Vec<Error<usize>>,
 }
 
 impl<'a> Files<'a> for Module {
@@ -73,47 +76,57 @@ impl Module {
             tokens: None,
             ast: None,
             snapshot: None,
+            errors: Vec::new(),
         }
     }
 
     /// Tokenizes the module and returns a reference of tokens.
-    pub async fn tokenize(&mut self) -> Result<&[Token], Error<usize>> {
-        let id = self.file_id;
-        self.tokens = Some(tokenize(self.source.as_ref(), id).await?);
-        Ok(self.tokens.as_ref().unwrap())
+    pub async fn tokenize(&mut self) -> &[Token] {
+        if let Some(ref tokens) = self.tokens {
+            return tokens.as_slice();
+        }
+
+        let tokens = match tokenize(self.source.as_ref(), self.file_id).await {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                self.errors.push(err);
+                Vec::new()
+            }
+        };
+
+        self.tokens = Some(tokens);
+        self.tokens.as_ref().unwrap()
     }
 
     /// Parses the module and returns a reference of the parsed AST.
     ///
     /// Note that this function also does tokenizing if it has not done yet.
-    pub async fn parse(&mut self) -> Result<&[Statement<usize>], Error<usize>> {
-        let id = self.file_id;
-        self.ast = Some(
-            parse(
-                match self.tokens {
-                    Some(ref tokens) => tokens.as_slice(),
-                    None => self.tokenize().await?,
-                },
-                id,
-            )
-            .await?,
-        );
+    pub async fn parse(&mut self) -> &[Statement<usize>] {
+        if let Some(ref ast) = self.ast {
+            return ast.as_slice();
+        }
 
-        Ok(self.ast.as_ref().unwrap())
+        let id = self.file_id;
+        let ast = match parse(self.tokenize().await, id).await {
+            Ok(ast) => ast,
+            Err(err) => {
+                self.errors.push(err);
+                Vec::new()
+            }
+        };
+
+        self.ast = Some(ast);
+        self.ast.as_ref().unwrap()
     }
 
     /// Evaluates the module and returns a reference of the snapshot.
-    pub async fn evaluate(&mut self) -> Result<&Snapshot<usize>, Error<usize>> {
+    pub async fn evaluate(&mut self) -> &Snapshot<usize> {
         let id = self.file_id;
-        self.snapshot = Some(evaluate(
-            match self.ast {
-                Some(ref ast) => ast.as_slice(),
-                None => self.parse().await?,
-            },
-            id,
-        ));
+        let (snapshot, mut errors) = evaluate(self.parse().await, id);
 
-        Ok(self.snapshot.as_ref().unwrap())
+        self.errors.append(&mut errors);
+        self.snapshot = Some(snapshot);
+        self.snapshot.as_ref().unwrap()
     }
 
     /// Gets a reference for the name of the module.
