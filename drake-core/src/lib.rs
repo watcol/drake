@@ -13,7 +13,7 @@ use core::ops::Range;
 pub use module::Module;
 
 /// A struct contains all runtime informations
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Runtime {
     modules: Vec<Module>,
@@ -52,19 +52,10 @@ impl<'a> Files<'a> for Runtime {
 impl Runtime {
     /// Creates a new instance.
     #[inline]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Registers a new module by the name and the source code.
-    pub fn add(&mut self, name: String, source: String) -> usize {
-        if let Some((id, _)) = self.get_module_by_name(&name) {
-            return id;
+    pub fn new(name: String, source: String) -> Self {
+        Self {
+            modules: alloc::vec![Module::new(name, source)],
         }
-
-        let mod_id = self.modules.len();
-        self.modules.push(Module::new(name, source));
-        mod_id
     }
 
     /// Gets a slice of modules indexed by identifiers.
@@ -84,24 +75,6 @@ impl Runtime {
     pub fn get_module_by_name<S: AsRef<str>>(&self, name: S) -> Option<(usize, &Module)> {
         self.modules
             .iter()
-            .enumerate()
-            .find(|(_, m)| m.get_name() == name.as_ref())
-    }
-
-    /// Gets a mutable reference of a module corresponding to given module identifier.
-    #[inline]
-    pub fn get_mut_module(&mut self, id: usize) -> Option<&mut Module> {
-        self.modules.get_mut(id)
-    }
-
-    /// Gets a mutable reference of a module corresponding to given name.
-    #[inline]
-    pub fn get_mut_module_by_name<S: AsRef<str>>(
-        &mut self,
-        name: S,
-    ) -> Option<(usize, &mut Module)> {
-        self.modules
-            .iter_mut()
             .enumerate()
             .find(|(_, m)| m.get_name() == name.as_ref())
     }
