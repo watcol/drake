@@ -8,29 +8,30 @@ use drake_types::ast::{
     Expression, ExpressionKind, Key, KeyKind, Literal, Pattern, PatternKind, Statement,
     StatementKind, TableHeaderKind,
 };
-use drake_types::runtime::{Builtin, Element, Error, Kind, Snapshot, Table, Value};
+use drake_types::error::{Error, Kind, Span};
+use drake_types::runtime::{Builtin, Element, Snapshot, Table, Value};
 
 #[derive(Clone, Debug, PartialEq)]
 struct Environment<L> {
+    file_id: usize,
     root: Table<L>,
     builtin: Builtin,
     current: Option<Current<L>>,
     errors: Vec<Error<L>>,
 }
 
-impl<L> Default for Environment<L> {
+impl<L: Clone> Environment<L> {
     #[inline]
-    fn default() -> Self {
+    fn new(file_id: usize) -> Self {
         Self {
+            file_id,
             root: Table::new(),
             builtin: Builtin::default(),
             current: None,
             errors: Vec::new(),
         }
     }
-}
 
-impl<L: Clone> Environment<L> {
     fn bind(&mut self, pattern: Pattern<L>, value: Value<L>) {
         match pattern.kind {
             PatternKind::Key(key) => {
@@ -45,13 +46,16 @@ impl<L: Clone> Environment<L> {
                     None => &mut self.root,
                 };
 
-                insert(table, key, value, &mut self.errors);
+                insert(table, key, value, &mut self.errors, self.file_id);
             }
             PatternKind::Builtin(key) => self.builtin_write(key, value),
             _ => {
                 self.errors.push(Error::NotSupported {
                     feature: "unknown pattern",
-                    span: pattern.span,
+                    span: Span {
+                        file_id: self.file_id,
+                        span: pattern.span,
+                    },
                 });
             }
         };
@@ -65,9 +69,10 @@ impl<L: Clone> Environment<L> {
     ) {
         let (mut default, default_span) = default
             .map(|expr| {
-                let (val, span) = expr_to_value(expr, &mut self.errors);
+                let (val, span) = expr_to_value(expr, &mut self.errors, self.file_id);
                 (
-                    assert_table(val, span.clone(), &mut self.errors).unwrap_or_default(),
+                    assert_table(val, span.clone(), &mut self.errors, self.file_id)
+                        .unwrap_or_default(),
                     Some(span),
                 )
             })
@@ -77,7 +82,12 @@ impl<L: Clone> Environment<L> {
         if let Some(mut cur) = core::mem::take(&mut self.current) {
             if cur.is_movable(kind, &pattern) {
                 if let Some(span) = default_span {
-                    self.errors.push(Error::UnallowedDefaultValue { span });
+                    self.errors.push(Error::UnallowedDefaultValue {
+                        span: Span {
+                            file_id: self.file_id,
+                            span,
+                        },
+                    });
                 }
 
                 cur.next_array(&mut self.errors);
@@ -93,7 +103,12 @@ impl<L: Clone> Environment<L> {
 
     fn builtin_write(&mut self, key: Key<L>, value: Value<L>) {
         if key.kind != KeyKind::Normal {
-            self.errors.push(Error::BuiltinNotFound { span: key.span });
+            self.errors.push(Error::BuiltinNotFound {
+                span: Span {
+                    file_id: self.file_id,
+                    span: key.span,
+                },
+            });
             return;
         }
 
@@ -105,7 +120,10 @@ impl<L: Clone> Environment<L> {
                     self.errors.push(Error::KindMismatch {
                         expect: vec![Kind::String],
                         found: value.kind(),
-                        span: key.span,
+                        span: Span {
+                            file_id: self.file_id,
+                            span: key.span,
+                        },
                     })
                 }
             }
@@ -116,11 +134,19 @@ impl<L: Clone> Environment<L> {
                     self.errors.push(Error::KindMismatch {
                         expect: vec![Kind::String],
                         found: value.kind(),
-                        span: key.span,
+                        span: Span {
+                            file_id: self.file_id,
+                            span: key.span,
+                        },
                     });
                 }
             }
-            _ => self.errors.push(Error::BuiltinNotFound { span: key.span }),
+            _ => self.errors.push(Error::BuiltinNotFound {
+                span: Span {
+                    file_id: self.file_id,
+                    span: key.span,
+                },
+            }),
         }
     }
 
@@ -193,12 +219,12 @@ impl<L> CurrentValue<L> {
 }
 
 /// Evaluates an AST to a value.
-pub fn evaluate<L: Clone>(ast: &[Statement<L>]) -> Snapshot<L> {
-    let mut env = Environment::default();
+pub fn evaluate<L: Clone>(ast: &[Statement<L>], file_id: usize) -> Snapshot<L> {
+    let mut env = Environment::new(file_id);
     for stmt in ast {
         match stmt.kind {
             StatementKind::ValueBinding(ref pattern, ref expr) => {
-                let value = expr_to_value(expr.clone(), &mut env.errors).0;
+                let value = expr_to_value(expr.clone(), &mut env.errors, file_id).0;
                 env.bind(pattern.clone(), value)
             }
             StatementKind::TableHeader(kind, ref pattern, ref default) => {
@@ -206,7 +232,10 @@ pub fn evaluate<L: Clone>(ast: &[Statement<L>]) -> Snapshot<L> {
             }
             _ => env.errors.push(Error::NotSupported {
                 feature: "unknown statements",
-                span: stmt.span.clone(),
+                span: Span {
+                    file_id,
+                    span: stmt.span.clone(),
+                },
             }),
         }
     }
@@ -217,6 +246,7 @@ pub fn evaluate<L: Clone>(ast: &[Statement<L>]) -> Snapshot<L> {
 fn expr_to_value<L: Clone>(
     expr: Expression<L>,
     errors: &mut Vec<Error<L>>,
+    file_id: usize,
 ) -> (Value<L>, Range<L>) {
     let val = match expr.kind {
         ExpressionKind::Literal(Literal::Character(c)) => Value::Character(c),
@@ -225,20 +255,29 @@ fn expr_to_value<L: Clone>(
         ExpressionKind::Literal(Literal::Float(f)) => Value::Float(f),
         ExpressionKind::Array(arr) => Value::Array(
             arr.into_iter()
-                .map(|elem| expr_to_value(elem, errors).0)
+                .map(|elem| expr_to_value(elem, errors, file_id).0)
                 .collect(),
         ),
         ExpressionKind::InlineTable(arr) => {
             let mut table = Table::new();
             for (key, expr) in arr {
-                insert(&mut table, key, expr_to_value(expr, errors).0, errors);
+                insert(
+                    &mut table,
+                    key,
+                    expr_to_value(expr, errors, file_id).0,
+                    errors,
+                    file_id,
+                );
             }
             Value::Table(table)
         }
         _ => {
             errors.push(Error::NotSupported {
                 feature: "unknown expressions",
-                span: expr.span.clone(),
+                span: Span {
+                    file_id,
+                    span: expr.span.clone(),
+                },
             });
             Value::Table(Table::new())
         }
@@ -247,14 +286,19 @@ fn expr_to_value<L: Clone>(
     (val, expr.span)
 }
 
-fn assert_table<L>(val: Value<L>, span: Range<L>, errors: &mut Vec<Error<L>>) -> Option<Table<L>> {
+fn assert_table<L>(
+    val: Value<L>,
+    span: Range<L>,
+    errors: &mut Vec<Error<L>>,
+    file_id: usize,
+) -> Option<Table<L>> {
     match val {
         Value::Table(table) => Some(table),
         val => {
             errors.push(Error::KindMismatch {
                 expect: vec![Kind::Table],
                 found: val.kind(),
-                span,
+                span: Span { file_id, span },
             });
             None
         }
@@ -266,6 +310,7 @@ fn insert<L: Clone>(
     key: Key<L>,
     value: Value<L>,
     errors: &mut Vec<Error<L>>,
+    file_id: usize,
 ) {
     let (table, used) = match key.kind {
         KeyKind::Normal => (&mut table.global, true),
@@ -273,7 +318,10 @@ fn insert<L: Clone>(
         _ => {
             errors.push(Error::NotSupported {
                 feature: "unknown keys",
-                span: key.span,
+                span: Span {
+                    file_id,
+                    span: key.span,
+                },
             });
             return;
         }
@@ -281,8 +329,14 @@ fn insert<L: Clone>(
 
     if table.contains_key(&key.name) && !table[&key.name].default {
         errors.push(Error::DuplicateKey {
-            existing: table[&key.name].defined.clone(),
-            found: key.span,
+            existing: Span {
+                file_id,
+                span: table[&key.name].defined.clone(),
+            },
+            found: Span {
+                file_id,
+                span: key.span,
+            },
         });
     } else {
         table.insert(

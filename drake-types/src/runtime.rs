@@ -1,4 +1,6 @@
 //! Types for runtimes
+use crate::error::Error;
+use crate::error::Kind;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::ops::Range;
@@ -48,20 +50,6 @@ impl<L> Value<L> {
             Self::Table(_) => Kind::Table,
         }
     }
-}
-
-/// Name of value kinds for errors.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Kind {
-    Character,
-    String,
-    Integer,
-    Float,
-    Boolean,
-    Null,
-    Array,
-    Table,
 }
 
 /// Evaluated tables
@@ -114,30 +102,4 @@ pub struct Element<L> {
     pub default: bool,
     /// A flag checks if the element is used, or not
     pub used: bool,
-}
-
-/// Errors for runtimes
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Error<L> {
-    DuplicateKey {
-        existing: Range<L>,
-        found: Range<L>,
-    },
-    KindMismatch {
-        expect: Vec<Kind>,
-        found: Kind,
-        span: Range<L>,
-    },
-    BuiltinNotFound {
-        span: Range<L>,
-    },
-    UnallowedDefaultValue {
-        span: Range<L>,
-    },
-    NotSupported {
-        feature: &'static str,
-        span: Range<L>,
-    },
-    Unexpected,
 }

@@ -3,18 +3,19 @@ mod parse;
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use codespan_reporting::files::{Error, Files};
+use codespan_reporting::files::Files;
 use core::ops::Range;
 use drake_runtime::evaluate;
-use drake_types::{ast::Statement, runtime::Snapshot};
+use drake_types::{ast::Statement, error::Error, runtime::Snapshot};
 
 use crate::files::Source;
+pub use parse::Token;
 use parse::{parse, tokenize};
-pub use parse::{ParseError, Token};
 
 /// A struct contains partial (or full) information while processing a module
 #[derive(Debug, Clone, PartialEq)]
 pub struct Module {
+    file_id: usize,
     name: String,
     source: Source,
     tokens: Option<Vec<Token>>,
@@ -47,21 +48,26 @@ impl<'a> Files<'a> for Module {
     }
 
     #[inline]
-    fn line_range(&'a self, _: Self::FileId, line_index: usize) -> Result<Range<usize>, Error> {
-        self.source
-            .line_range(line_index)
-            .map_err(|max| Error::LineTooLarge {
+    fn line_range(
+        &'a self,
+        _: Self::FileId,
+        line_index: usize,
+    ) -> Result<Range<usize>, codespan_reporting::files::Error> {
+        self.source.line_range(line_index).map_err(|max| {
+            codespan_reporting::files::Error::LineTooLarge {
                 given: line_index,
                 max,
-            })
+            }
+        })
     }
 }
 
 impl Module {
     /// Creates a new instance.
     #[inline]
-    pub fn new(name: String, source: String) -> Self {
+    pub fn new(file_id: usize, name: String, source: String) -> Self {
         Self {
+            file_id,
             name,
             source: Source::new(source),
             tokens: None,
@@ -71,20 +77,25 @@ impl Module {
     }
 
     /// Tokenizes the module and returns a reference of tokens.
-    pub async fn tokenize(&mut self) -> Result<&[Token], ParseError> {
-        self.tokens = Some(tokenize(self.source.as_ref()).await?);
+    pub async fn tokenize(&mut self) -> Result<&[Token], Error<usize>> {
+        let id = self.file_id;
+        self.tokens = Some(tokenize(self.source.as_ref(), id).await?);
         Ok(self.tokens.as_ref().unwrap())
     }
 
     /// Parses the module and returns a reference of the parsed AST.
     ///
     /// Note that this function also does tokenizing if it has not done yet.
-    pub async fn parse(&mut self) -> Result<&[Statement<usize>], ParseError> {
+    pub async fn parse(&mut self) -> Result<&[Statement<usize>], Error<usize>> {
+        let id = self.file_id;
         self.ast = Some(
-            parse(match self.tokens {
-                Some(ref tokens) => tokens.as_slice(),
-                None => self.tokenize().await?,
-            })
+            parse(
+                match self.tokens {
+                    Some(ref tokens) => tokens.as_slice(),
+                    None => self.tokenize().await?,
+                },
+                id,
+            )
             .await?,
         );
 
@@ -92,11 +103,15 @@ impl Module {
     }
 
     /// Evaluates the module and returns a reference of the snapshot.
-    pub async fn evaluate(&mut self) -> Result<&Snapshot<usize>, ParseError> {
-        self.snapshot = Some(evaluate(match self.ast {
-            Some(ref ast) => ast.as_slice(),
-            None => self.parse().await?,
-        }));
+    pub async fn evaluate(&mut self) -> Result<&Snapshot<usize>, Error<usize>> {
+        let id = self.file_id;
+        self.snapshot = Some(evaluate(
+            match self.ast {
+                Some(ref ast) => ast.as_slice(),
+                None => self.parse().await?,
+            },
+            id,
+        ));
 
         Ok(self.snapshot.as_ref().unwrap())
     }

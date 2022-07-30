@@ -92,6 +92,7 @@ name = "drake-types"
 version = "0.0.1"
 dependencies = [
  "hashbrown",
+ "somen",
 ]
 
 [[package]]
