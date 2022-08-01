@@ -17,7 +17,6 @@ use parse::{parse, tokenize};
 /// A struct contains partial (or full) information while processing a module
 #[derive(Debug, Clone, PartialEq)]
 pub struct Module {
-    file_id: usize,
     name: String,
     source: Source,
     tokens: Option<Vec<Token>>,
@@ -68,9 +67,8 @@ impl<'a> Files<'a> for Module {
 impl Module {
     /// Creates a new instance.
     #[inline]
-    pub fn new(file_id: usize, name: String, source: String) -> Self {
+    pub fn new(name: String, source: String) -> Self {
         Self {
-            file_id,
             name,
             source: Source::new(source),
             tokens: None,
@@ -86,7 +84,7 @@ impl Module {
             return tokens.as_slice();
         }
 
-        let tokens = match tokenize(self.source.as_ref(), self.file_id).await {
+        let tokens = match tokenize(self.source.as_ref()).await {
             Ok(tokens) => tokens,
             Err(err) => {
                 self.errors.push(err);
@@ -106,8 +104,7 @@ impl Module {
             return ast.as_slice();
         }
 
-        let id = self.file_id;
-        let ast = match parse(self.tokenize().await, id).await {
+        let ast = match parse(self.tokenize().await).await {
             Ok(ast) => ast,
             Err(err) => {
                 self.errors.push(err);
@@ -121,8 +118,7 @@ impl Module {
 
     /// Interprets the module and returns a reference of IR.
     pub async fn evaluate(&mut self) -> &Ir<usize> {
-        let id = self.file_id;
-        let (ir, mut errors) = interpret(self.parse().await, id);
+        let (ir, mut errors) = interpret(self.parse().await);
 
         self.errors.append(&mut errors);
         self.ir = Some(ir);

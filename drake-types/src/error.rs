@@ -1,47 +1,35 @@
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Kind {
-    Character,
-    String,
-    Integer,
-    Float,
-    Boolean,
-    Null,
-    Array,
-    Table,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Span<L> {
-    pub file_id: usize,
-    pub span: core::ops::Range<L>,
-}
+use core::ops::Range;
+use somen::error::{Expects, ParseError};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error<L> {
     ParseError {
-        expects: somen::error::Expects,
-        span: Span<L>,
+        expects: Expects,
+        span: Range<L>,
     },
     DuplicateKey {
-        existing: Option<Span<L>>,
-        found: Span<L>,
-    },
-    KindMismatch {
-        expect: alloc::vec::Vec<Kind>,
-        found: Kind,
-        span: Span<L>,
+        found: Range<L>,
+        existing: Option<Range<L>>,
     },
     BuiltinNotFound {
-        span: Span<L>,
-    },
-    UnallowedDefaultValue {
-        span: Span<L>,
+        span: Range<L>,
     },
     NotSupported {
         feature: &'static str,
-        span: Span<L>,
+        span: Range<L>,
     },
     Unexpected,
+}
+
+impl<L, E> From<ParseError<L, E>> for Error<L> {
+    fn from(err: ParseError<L, E>) -> Self {
+        match err {
+            ParseError::Parser(err) => Error::ParseError {
+                expects: err.expects,
+                span: err.position,
+            },
+            ParseError::Stream(_) => Error::Unexpected,
+        }
+    }
 }

@@ -7,28 +7,33 @@ use drake_types::ast::{
     Expression, ExpressionKind, Key, KeyKind, Pattern, PatternKind, Statement, StatementKind,
     TableHeaderKind,
 };
-use drake_types::error::{Error, Span};
+use drake_types::error::Error;
 use drake_types::ir::{Builtin, Element, ElementKind, Expr, ExprKind, Ir, Table};
 
 #[derive(Clone, Debug, PartialEq)]
 struct Environment<L> {
-    file_id: usize,
     root: Table<Element<L>>,
     builtin: Builtin<L>,
     current: Option<Current<L>>,
     errors: Vec<Error<L>>,
 }
 
-impl<L: Clone> Environment<L> {
+impl<L> Default for Environment<L> {
     #[inline]
-    fn new(file_id: usize) -> Self {
+    fn default() -> Self {
         Self {
-            file_id,
             root: Table::new(),
             builtin: Builtin::new(),
             current: None,
             errors: Vec::new(),
         }
+    }
+}
+
+impl<L: Clone> Environment<L> {
+    #[inline]
+    fn new() -> Self {
+        Self::default()
     }
 
     fn bind(&mut self, pattern: Pattern<L>, elem: ElementKind<L>) {
@@ -45,16 +50,13 @@ impl<L: Clone> Environment<L> {
                     None => &mut self.root,
                 };
 
-                insert_elem(table, key, elem, &mut self.errors, self.file_id);
+                insert_elem(table, key, elem, &mut self.errors);
             }
             PatternKind::Builtin(key) => self.builtin_write(key, elem),
             _ => {
                 self.errors.push(Error::NotSupported {
                     feature: "unknown pattern",
-                    span: Span {
-                        file_id: self.file_id,
-                        span: pattern.span,
-                    },
+                    span: pattern.span,
                 });
             }
         };
@@ -76,12 +78,7 @@ impl<L: Clone> Environment<L> {
 
     fn builtin_write(&mut self, key: Key<L>, elem: ElementKind<L>) {
         if key.kind != KeyKind::Normal {
-            self.errors.push(Error::BuiltinNotFound {
-                span: Span {
-                    file_id: self.file_id,
-                    span: key.span,
-                },
-            });
+            self.errors.push(Error::BuiltinNotFound { span: key.span });
             return;
         }
 
@@ -89,14 +86,8 @@ impl<L: Clone> Environment<L> {
             "output" => {
                 if let Some(ref output) = self.builtin.output {
                     self.errors.push(Error::DuplicateKey {
-                        existing: Some(Span {
-                            file_id: self.file_id,
-                            span: output.defined.clone(),
-                        }),
-                        found: Span {
-                            file_id: self.file_id,
-                            span: output.defined.clone(),
-                        },
+                        found: key.span,
+                        existing: Some(output.defined.clone()),
                     });
                 } else {
                     self.builtin.output = Some(Element {
@@ -108,14 +99,8 @@ impl<L: Clone> Environment<L> {
             "filetype" => {
                 if let Some(ref filetype) = self.builtin.filetype {
                     self.errors.push(Error::DuplicateKey {
-                        existing: Some(Span {
-                            file_id: self.file_id,
-                            span: filetype.defined.clone(),
-                        }),
-                        found: Span {
-                            file_id: self.file_id,
-                            span: filetype.defined.clone(),
-                        },
+                        found: key.span,
+                        existing: Some(filetype.defined.clone()),
                     });
                 } else {
                     self.builtin.output = Some(Element {
@@ -124,12 +109,7 @@ impl<L: Clone> Environment<L> {
                     });
                 }
             }
-            _ => self.errors.push(Error::BuiltinNotFound {
-                span: Span {
-                    file_id: self.file_id,
-                    span: key.span,
-                },
-            }),
+            _ => self.errors.push(Error::BuiltinNotFound { span: key.span }),
         }
     }
 
@@ -206,26 +186,23 @@ impl<L> CurrentElem<L> {
 }
 
 /// Interprets an AST to IR.
-pub fn interpret<L: Clone>(ast: &[Statement<L>], file_id: usize) -> (Ir<L>, Vec<Error<L>>) {
-    let mut env = Environment::new(file_id);
+pub fn interpret<L: Clone>(ast: &[Statement<L>]) -> (Ir<L>, Vec<Error<L>>) {
+    let mut env = Environment::new();
     for stmt in ast {
         match stmt.kind {
             StatementKind::ValueBinding(ref pattern, ref expr) => {
-                let expr = expression(expr.clone(), &mut env.errors, file_id);
+                let expr = expression(expr.clone(), &mut env.errors);
                 env.bind(pattern.clone(), ElementKind::Expr(expr))
             }
             StatementKind::TableHeader(kind, ref pattern, ref default) => {
                 let default = default
                     .as_ref()
-                    .map(|def| expression(def.clone(), &mut env.errors, file_id));
+                    .map(|def| expression(def.clone(), &mut env.errors));
                 env.header(kind, pattern.clone(), default)
             }
             _ => env.errors.push(Error::NotSupported {
                 feature: "unknown statements",
-                span: Span {
-                    file_id,
-                    span: stmt.span.clone(),
-                },
+                span: stmt.span.clone(),
             }),
         }
     }
@@ -233,38 +210,25 @@ pub fn interpret<L: Clone>(ast: &[Statement<L>], file_id: usize) -> (Ir<L>, Vec<
     env.close()
 }
 
-fn expression<L: Clone>(
-    expr: Expression<L>,
-    errors: &mut Vec<Error<L>>,
-    file_id: usize,
-) -> Expr<L> {
+fn expression<L: Clone>(expr: Expression<L>, errors: &mut Vec<Error<L>>) -> Expr<L> {
     let kind = match expr.kind {
         ExpressionKind::Literal(lit) => ExprKind::Literal(lit),
         ExpressionKind::Array(arr) => ExprKind::Array(
             arr.into_iter()
-                .map(|elem| expression(elem, errors, file_id))
+                .map(|elem| expression(elem, errors))
                 .collect(),
         ),
         ExpressionKind::InlineTable(arr) => {
             let mut table = Table::new();
             for (key, expr) in arr {
-                insert_expr(
-                    &mut table,
-                    key,
-                    expression(expr, errors, file_id),
-                    errors,
-                    file_id,
-                );
+                insert_expr(&mut table, key, expression(expr, errors), errors);
             }
             ExprKind::Table(table)
         }
         _ => {
             errors.push(Error::NotSupported {
                 feature: "unknown expressions",
-                span: Span {
-                    file_id,
-                    span: expr.span.clone(),
-                },
+                span: expr.span.clone(),
             });
             ExprKind::Table(Table::new())
         }
@@ -281,7 +245,6 @@ fn insert_expr<L: Clone>(
     key: Key<L>,
     expr: Expr<L>,
     errors: &mut Vec<Error<L>>,
-    file_id: usize,
 ) {
     let table = match key.kind {
         KeyKind::Normal => &mut table.global,
@@ -289,10 +252,7 @@ fn insert_expr<L: Clone>(
         _ => {
             errors.push(Error::NotSupported {
                 feature: "unknown keys",
-                span: Span {
-                    file_id,
-                    span: key.span,
-                },
+                span: key.span,
             });
             return;
         }
@@ -300,11 +260,8 @@ fn insert_expr<L: Clone>(
 
     if table.contains_key(&key.name) {
         errors.push(Error::DuplicateKey {
+            found: key.span,
             existing: None,
-            found: Span {
-                file_id,
-                span: key.span,
-            },
         });
     } else {
         table.insert(key.name, expr);
@@ -316,7 +273,6 @@ fn insert_elem<L: Clone>(
     key: Key<L>,
     kind: ElementKind<L>,
     errors: &mut Vec<Error<L>>,
-    file_id: usize,
 ) {
     let table = match key.kind {
         KeyKind::Normal => &mut table.global,
@@ -324,10 +280,7 @@ fn insert_elem<L: Clone>(
         _ => {
             errors.push(Error::NotSupported {
                 feature: "unknown keys",
-                span: Span {
-                    file_id,
-                    span: key.span,
-                },
+                span: key.span,
             });
             return;
         }
@@ -335,14 +288,8 @@ fn insert_elem<L: Clone>(
 
     if table.contains_key(&key.name) {
         errors.push(Error::DuplicateKey {
-            existing: Some(Span {
-                file_id,
-                span: table[&key.name].defined.clone(),
-            }),
-            found: Span {
-                file_id,
-                span: key.span,
-            },
+            found: key.span,
+            existing: Some(table[&key.name].defined.clone()),
         });
     } else {
         table.insert(

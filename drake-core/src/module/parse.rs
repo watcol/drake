@@ -4,11 +4,10 @@ use core::ops::Range;
 use core::pin::Pin;
 use core::task::{Context, Poll};
 use drake_types::ast::Statement;
-use drake_types::error::{Error, Span};
+use drake_types::error::Error;
 use drake_types::token::Token as TokenKind;
 use futures_util::{Stream, TryStreamExt};
 use pin_project_lite::pin_project;
-use somen::error::ParseError;
 use somen::prelude::*;
 use somen::stream::{Rewind, SliceStream};
 
@@ -18,10 +17,7 @@ pub struct Token {
     pub span: Range<usize>,
 }
 
-pub async fn tokenize<T: AsRef<[u8]> + ?Sized>(
-    source: &T,
-    file_id: usize,
-) -> Result<Vec<Token>, Error<usize>> {
+pub async fn tokenize<T: AsRef<[u8]> + ?Sized>(source: &T) -> Result<Vec<Token>, Error<usize>> {
     let mut bytes = stream::from_slice(source.as_ref());
     let mut decoder = somen_decode::utf8().repeat(..).complete();
     let mut input = decoder.parse_iterable(&mut bytes);
@@ -30,43 +26,14 @@ pub async fn tokenize<T: AsRef<[u8]> + ?Sized>(
         .map(|(kind, span)| Token { kind, span })
         .repeat(..);
 
-    lexer
-        .parse_iterable(&mut input)
-        .try_collect()
-        .await
-        .map_err(|err| match err {
-            ParseError::Parser(err) => Error::ParseError {
-                expects: err.expects,
-                span: Span {
-                    file_id,
-                    span: err.position,
-                },
-            },
-            ParseError::Stream(_) => Error::Unexpected,
-        })
+    Ok(lexer.parse_iterable(&mut input).try_collect().await?)
 }
 
-pub async fn parse(
-    tokens: &[Token],
-    file_id: usize,
-) -> Result<Vec<Statement<usize>>, Error<usize>> {
+pub async fn parse(tokens: &[Token]) -> Result<Vec<Statement<usize>>, Error<usize>> {
     let mut input = TokenStream::from(tokens);
     let mut parser = drake_parser::statement::statement().repeat(..);
 
-    parser
-        .parse_iterable(&mut input)
-        .try_collect()
-        .await
-        .map_err(|err| match err {
-            ParseError::Parser(err) => Error::ParseError {
-                expects: err.expects,
-                span: Span {
-                    file_id,
-                    span: err.position,
-                },
-            },
-            ParseError::Stream(_) => Error::Unexpected,
-        })
+    Ok(parser.parse_iterable(&mut input).try_collect().await?)
 }
 
 pin_project! {

@@ -54,7 +54,7 @@ impl Runtime {
     #[inline]
     pub fn new(name: String, source: String) -> Self {
         Self {
-            modules: alloc::vec![Module::new(0, name, source)],
+            modules: alloc::vec![Module::new(name, source)],
         }
     }
 
