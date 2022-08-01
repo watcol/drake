@@ -25,7 +25,7 @@ pub enum Error<L> {
         span: Span<L>,
     },
     DuplicateKey {
-        existing: Span<L>,
+        existing: Option<Span<L>>,
         found: Span<L>,
     },
     KindMismatch {

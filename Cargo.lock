@@ -50,14 +50,22 @@ name = "drake-core"
 version = "0.0.1"
 dependencies = [
  "codespan-reporting",
+ "drake-ir",
  "drake-lexer",
  "drake-parser",
- "drake-runtime",
  "drake-types",
  "futures-util",
  "pin-project-lite",
  "somen",
  "somen-decode",
+]
+
+[[package]]
+name = "drake-ir"
+version = "0.0.1"
+dependencies = [
+ "drake-types",
+ "hashbrown",
 ]
 
 [[package]]
@@ -77,14 +85,6 @@ dependencies = [
  "drake-types",
  "futures-executor",
  "somen",
-]
-
-[[package]]
-name = "drake-runtime"
-version = "0.0.1"
-dependencies = [
- "drake-types",
- "hashbrown",
 ]
 
 [[package]]

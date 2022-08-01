@@ -5,10 +5,10 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use codespan_reporting::files::Files;
 use core::ops::Range;
-use drake_runtime::evaluate;
+use drake_ir::interpret;
 use drake_types::ast::Statement;
 use drake_types::error::Error;
-use drake_types::runtime::Snapshot;
+use drake_types::ir::Ir;
 
 use crate::files::Source;
 pub use parse::Token;
@@ -22,7 +22,7 @@ pub struct Module {
     source: Source,
     tokens: Option<Vec<Token>>,
     ast: Option<Vec<Statement<usize>>>,
-    snapshot: Option<Snapshot<usize>>,
+    ir: Option<Ir<usize>>,
     errors: Vec<Error<usize>>,
 }
 
@@ -75,7 +75,7 @@ impl Module {
             source: Source::new(source),
             tokens: None,
             ast: None,
-            snapshot: None,
+            ir: None,
             errors: Vec::new(),
         }
     }
@@ -119,14 +119,14 @@ impl Module {
         self.ast.as_ref().unwrap()
     }
 
-    /// Evaluates the module and returns a reference of the snapshot.
-    pub async fn evaluate(&mut self) -> &Snapshot<usize> {
+    /// Interprets the module and returns a reference of IR.
+    pub async fn evaluate(&mut self) -> &Ir<usize> {
         let id = self.file_id;
-        let (snapshot, mut errors) = evaluate(self.parse().await, id);
+        let (ir, mut errors) = interpret(self.parse().await, id);
 
         self.errors.append(&mut errors);
-        self.snapshot = Some(snapshot);
-        self.snapshot.as_ref().unwrap()
+        self.ir = Some(ir);
+        self.ir.as_ref().unwrap()
     }
 
     /// Gets a reference for the name of the module.
@@ -153,9 +153,9 @@ impl Module {
         self.ast.as_deref()
     }
 
-    /// Gets a reference for the evaluated snapshot.
+    /// Gets a reference for the interpreted IR.
     #[inline]
-    pub fn get_snapshot(&self) -> Option<&Snapshot<usize>> {
-        self.snapshot.as_ref()
+    pub fn get_ir(&self) -> Option<&Ir<usize>> {
+        self.ir.as_ref()
     }
 }

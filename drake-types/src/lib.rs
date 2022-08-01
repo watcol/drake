@@ -3,5 +3,5 @@ extern crate alloc;
 
 pub mod ast;
 pub mod error;
-pub mod runtime;
+pub mod ir;
 pub mod token;
