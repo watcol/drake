@@ -1,3 +1,4 @@
+use core::convert::Infallible;
 use core::ops::Range;
 use somen::error::{Expects, ParseError};
 
@@ -22,14 +23,28 @@ pub enum Error<L> {
     Unexpected,
 }
 
-impl<L, E> From<ParseError<L, E>> for Error<L> {
-    fn from(err: ParseError<L, E>) -> Self {
+impl<L> From<ParseError<L, Infallible>> for Error<L> {
+    fn from(err: ParseError<L, Infallible>) -> Self {
         match err {
             ParseError::Parser(err) => Error::ParseError {
                 expects: err.expects,
                 span: err.position,
             },
-            ParseError::Stream(_) => Error::Unexpected,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl<L> From<ParseError<L, ParseError<L, Infallible>>> for Error<L> {
+    fn from(err: ParseError<L, ParseError<L, Infallible>>) -> Self {
+        match err {
+            ParseError::Parser(err) | ParseError::Stream(ParseError::Parser(err)) => {
+                Error::ParseError {
+                    expects: err.expects,
+                    span: err.position,
+                }
+            }
+            _ => unreachable!(),
         }
     }
 }
